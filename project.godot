@@ -1,0 +1,108 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
+
+[application]
+
+config/name="Neon Rails"
+config/description="Original 3D endless lane runner built from procedural art and audio."
+config/version="1.0.0"
+run/main_scene="res://scenes/main.tscn"
+config/quit_on_go_back=false
+config/features=PackedStringArray("4.6", "Mobile")
+run/max_fps=60
+boot_splash/bg_color=Color(0.027, 0.031, 0.075, 1)
+boot_splash/show_image=false
+config/icon="res://assets/textures/icon.png"
+
+[autoload]
+
+GameEvents="*res://scripts/autoload/game_events.gd"
+SaveSystem="*res://scripts/autoload/save_system.gd"
+SettingsManager="*res://scripts/autoload/settings_manager.gd"
+Tr="*res://scripts/autoload/tr.gd"
+PoolManager="*res://scripts/autoload/pool_manager.gd"
+AudioManager="*res://scripts/autoload/audio_manager.gd"
+Haptics="*res://scripts/autoload/haptics.gd"
+AnalyticsStub="*res://scripts/autoload/analytics_stub.gd"
+Monetization="*res://scripts/autoload/monetization_stub.gd"
+VFXManager="*res://scripts/autoload/vfx_manager.gd"
+GameState="*res://scripts/autoload/game_state.gd"
+SceneRouter="*res://scripts/autoload/scene_router.gd"
+
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/size/window_width_override=540
+window/size/window_height_override=960
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[layer_names]
+
+3d_physics/layer_1="World"
+3d_physics/layer_2="Player"
+3d_physics/layer_3="Obstacle"
+3d_physics/layer_4="Pickup"
+3d_physics/layer_5="Chaser"
+3d_physics/layer_6="Trigger"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
+lights_and_shadows/directional_shadow/size=1024
+lights_and_shadows/directional_shadow/size.mobile=1024
+anti_aliasing/quality/msaa_3d=1
+environment/defaults/default_clear_color=Color(0.027, 0.031, 0.075, 1)
+
+[shader_globals]
+
+bend_x={
+"type": "float",
+"value": 0.0
+}
+bend_y={
+"type": "float",
+"value": 0.022
+}
+fog_start={
+"type": "float",
+"value": 60.0
+}
+fog_end={
+"type": "float",
+"value": 190.0
+}
+fog_color={
+"type": "color",
+"value": Color(0.05, 0.03, 0.15, 1)
+}
+biome_accent={
+"type": "color",
+"value": Color(0, 0.9, 1, 1)
+}
+biome_accent2={
+"type": "color",
+"value": Color(1, 0.2, 0.8, 1)
+}

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="GameConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/game_config.gd" id="1"]
+[ext_resource type="Curve" path="res://config/difficulty_curve.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+start_speed = 14.0
+max_speed = 34.0
+speed_ramp_time = 180.0
+difficulty_curve = ExtResource("2")
+difficulty_strategy = &"adaptive"
+spawn_strategy = &"pattern"
+lane_width = 2.0
+chunk_length = 30.0
+active_chunks = 9
+recycle_threshold = 30.0
+fog_start = 60.0
+fog_end = 190.0
+biome_length = 1500.0
+lane_change_time = 0.12
+jump_height = 2.2
+jump_time = 0.62
+roll_time = 0.55
+gravity_down_multiplier = 1.6
+stumble_window = 2.5
+i_frames = 1.2
+coin_value = 1
+near_miss_margin = 0.35
+near_miss_points = 50
+combo_window = 1.5
+magnet_radius = 7.0
+powerup_min_gap = 400.0
+revive_cost_keys = 1
+revive_timer = 5.0
+min_reaction_time = 0.45

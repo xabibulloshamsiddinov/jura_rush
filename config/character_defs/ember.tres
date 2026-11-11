@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"ember"
+name_key = &"char.ember"
+price = 500
+body_color = Color(0.95, 0.4, 0.1, 1)
+limb_color = Color(0.22, 0.1, 0.1, 1)
+head_color = Color(0.8, 0.6, 0.45, 1)
+glow_color = Color(1, 0.75, 0.1, 1)
+accessory = &"cap"
+bulk = 1.05

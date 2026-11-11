@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PowerupDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/powerup_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"magnet"
+name_key = &"powerup.magnet"
+icon = "U"
+color = Color(1, 0.25, 0.3, 1)
+duration = 10.0
+duration_per_level = 1.5
+stacking = 0
+upgrade_costs = PackedInt32Array(500, 1200, 2500, 5000)
+weight = 1.2

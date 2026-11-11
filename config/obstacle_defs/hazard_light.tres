@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ObstacleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/obstacle_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"hazard_light"
+kind = &"hazard_light"
+hit_type = 2
+side_hit_type = 2
+size = Vector3(0.3, 2.4, 0.3)
+y_offset = 0
+walkable_top = false
+moving = false
+color = Color(0.12, 0.12, 0.18, 1)
+glow = Color(1, 0.6, 0.1, 1)
+pool_size = 8

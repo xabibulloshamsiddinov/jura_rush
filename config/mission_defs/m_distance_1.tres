@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MissionDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/mission_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"m_distance_1"
+metric = &"distance"
+target = 500
+scope = 0
+kind = 0
+reward_coins = 100

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ObstacleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/obstacle_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"barrier_high"
+kind = &"barrier_high"
+hit_type = 1
+side_hit_type = 1
+size = Vector3(1.8, 1.6, 0.3)
+y_offset = 1.2
+walkable_top = false
+moving = false
+color = Color(0.16, 0.17, 0.26, 1)
+glow = Color(1, 0.25, 0.85, 1)
+pool_size = 14

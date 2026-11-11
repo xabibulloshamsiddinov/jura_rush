@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ObstacleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/obstacle_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"ramp"
+kind = &"ramp"
+hit_type = 2
+side_hit_type = 1
+size = Vector3(1.7, 3, 0)
+y_offset = 0
+walkable_top = false
+moving = false
+color = Color(0.2, 0.22, 0.32, 1)
+glow = Color(0.2, 1, 0.5, 1)
+pool_size = 6

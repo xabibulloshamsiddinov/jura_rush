@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PowerupDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/powerup_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"jetpack"
+name_key = &"powerup.jetpack"
+icon = "^"
+color = Color(1, 0.6, 0.1, 1)
+duration = 8.0
+duration_per_level = 1.0
+stacking = 2
+upgrade_costs = PackedInt32Array(800, 1800, 3500, 7000)
+weight = 0.7

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PowerupDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/powerup_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"dash"
+name_key = &"powerup.dash"
+icon = ">>"
+color = Color(0.3, 1, 0.5, 1)
+duration = 4.0
+duration_per_level = 0.5
+stacking = 2
+upgrade_costs = PackedInt32Array(600, 1500, 3000, 6000)
+weight = 0.8

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ObstacleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/obstacle_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"train_moving"
+kind = &"train"
+hit_type = 0
+side_hit_type = 1
+size = Vector3(1.7, 3, 0)
+y_offset = 0
+walkable_top = false
+moving = true
+color = Color(0.42, 0.1, 0.12, 1)
+glow = Color(1, 0.35, 0.1, 1)
+pool_size = 6

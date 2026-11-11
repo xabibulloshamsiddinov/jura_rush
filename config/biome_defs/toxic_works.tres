@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BiomeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/biome_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"toxic_works"
+name_key = &"biome.toxic_works"
+sky_top = Color(0.01, 0.05, 0.04, 1)
+sky_horizon = Color(0.1, 0.4, 0.2, 1)
+fog = Color(0.04, 0.18, 0.12, 1)
+accent = Color(0.4, 1, 0.3, 1)
+accent2 = Color(0.9, 1, 0.2, 1)
+light = Color(0.75, 1, 0.8, 1)
+decor_set = 2

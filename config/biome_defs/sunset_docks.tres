@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BiomeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/biome_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"sunset_docks"
+name_key = &"biome.sunset_docks"
+sky_top = Color(0.08, 0.02, 0.14, 1)
+sky_horizon = Color(0.9, 0.32, 0.2, 1)
+fog = Color(0.42, 0.14, 0.2, 1)
+accent = Color(1, 0.72, 0.15, 1)
+accent2 = Color(1, 0.25, 0.4, 1)
+light = Color(1, 0.8, 0.65, 1)
+decor_set = 1

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/resources/character_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"volt"
+name_key = &"char.volt"
+price = 0
+body_color = Color(0.08, 0.7, 0.95, 1)
+limb_color = Color(0.1, 0.11, 0.24, 1)
+head_color = Color(0.96, 0.8, 0.66, 1)
+glow_color = Color(0, 0.95, 1, 1)
+accessory = &"visor"
+bulk = 1.0
