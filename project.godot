@@ -106,3 +106,8 @@ biome_accent2={
 "type": "color",
 "value": Color(1, 0.2, 0.8, 1)
 }
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://localization/strings.en.translation", "res://localization/strings.uz.translation", "res://localization/strings.ru.translation")
+locale/fallback="en"

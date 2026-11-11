@@ -16,6 +16,7 @@ const DEFAULTS: Dictionary = {
 	"language": "en",
 	"colorblind": false,
 	"large_text": false,
+	"show_fps": false,
 }
 
 ## Render scale per quality preset (Low / Medium / High).

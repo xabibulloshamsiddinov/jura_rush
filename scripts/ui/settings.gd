@@ -44,6 +44,7 @@ func build() -> void:
 	_toggle(list, &"settings.reduce", "reduce_effects")
 	_toggle(list, &"settings.colorblind", "colorblind")
 	_toggle(list, &"settings.large_text", "large_text")
+	_toggle(list, &"settings.show_fps", "show_fps")
 	_cycle(list, &"settings.quality", "quality", [0, 1, 2], [tr_key(&"settings.quality.0"),
 			tr_key(&"settings.quality.1"), tr_key(&"settings.quality.2")])
 	_cycle(list, &"settings.language", "language", Tr.LANGUAGES, Tr.LANGUAGE_NAMES)

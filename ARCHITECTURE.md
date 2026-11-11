@@ -185,6 +185,18 @@ Profiling notes: generation costs one validator solve (~20 rows) per recycled ch
 every 1-2 s; coins are one MultiMesh per chunk spun in the vertex shader; collision scans only
 the chunks within 24 m.
 
+## 9b. Look tuning, theme and texts (1.2)
+
+* `scripts/vfx/visual_tuning.gd` holds every hand-tuned look value and the FEATURE_* flags
+  (player rim, lane warnings, night sky, window flicker, rail sparks, tunnels / bridges).
+* The night sky is an unshaded dome that follows the camera (BiomeDirector); the environment
+  background is a plain colour, so there is no sky radiance work.
+* `UITheme.godot_theme()` builds the one Godot Theme set on the UI root (SceneRouter). Buttons use
+  theme type variations `NeonPrimary / NeonSecondary / NeonAccent / NeonSuccess / NeonDanger /
+  NeonGhost` (UIKit.button picks them).
+* Texts: `localization/strings.csv` (keys, en, uz, ru) is imported by Godot into
+  `strings.<lang>.translation`; `Tr.t()` goes through TranslationServer.
+
 ## 10. Tests and tools
 
 | What | How to run |
@@ -195,3 +207,6 @@ the chunks within 24 m.
 | Pattern preview | run `scenes/obstacles/pattern_preview.tscn` |
 | VFX lab / audio lab | run `scenes/vfx/vfx_lab.tscn`, `scenes/vfx/audio_lab.tscn` |
 | Debug overlay and cheats | F3 in a debug build (see `util/debug_overlay.gd`) |
+| UI screenshots of every screen | `godot --path . --resolution 540x960 -- --ui-shots=<dir>` |
+| Gameplay burst screenshots | `godot --path . -- --shot=<dir>/x.png --shot-burst=12` |
+| Performance log (FPS, CPU / GPU ms, draw calls) | add `--perf-log`, or Settings > Show FPS |

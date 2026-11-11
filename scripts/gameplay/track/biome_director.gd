@@ -13,8 +13,11 @@ var index: int = 0
 var _cfg: GameConfig = GameConfig.current()
 var _environment: Environment = null
 var _sky_material: ProceduralSkyMaterial = null
-## Night sky shader (stars, moon, skyline); null when VisualTuning.FEATURE_NIGHT_SKY is off.
+## Night sky dome (stars, moon, skyline); null when VisualTuning.FEATURE_NIGHT_SKY is off.
 var _night_sky: ShaderMaterial = null
+var _dome: MeshInstance3D = null
+## Dome radius: inside the camera far plane (400 m), beyond every world object.
+const DOME_RADIUS: float = 330.0
 var _light: DirectionalLight3D = null
 var _from: BiomeDef = null
 var _to: BiomeDef = null
@@ -30,14 +33,25 @@ func _ready() -> void:
 	sky.sky_material = _sky_material
 	if VisualTuning.FEATURE_NIGHT_SKY:
 		_night_sky = ShaderMaterial.new()
-		_night_sky.shader = preload("res://assets/shaders/night_sky.gdshader")
+		_night_sky.shader = preload("res://assets/shaders/night_sky_dome.gdshader")
 		_night_sky.set_shader_parameter(&"stars_amount", VisualTuning.SKY_STARS)
 		_night_sky.set_shader_parameter(&"moon_amount", VisualTuning.SKY_MOON)
 		_night_sky.set_shader_parameter(&"skyline_amount", VisualTuning.SKY_SKYLINE)
-		sky.sky_material = _night_sky
+		var sphere: SphereMesh = SphereMesh.new()
+		sphere.radius = DOME_RADIUS
+		sphere.height = DOME_RADIUS * 2.0
+		sphere.radial_segments = 32
+		sphere.rings = 16
+		_dome = MeshInstance3D.new()
+		_dome.mesh = sphere
+		_dome.material_override = _night_sky
+		_dome.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_dome.top_level = true
+		_dome.extra_cull_margin = 16384.0
+		add_child(_dome)
 	sky.radiance_size = Sky.RADIANCE_SIZE_32
 	_environment = Environment.new()
-	_environment.background_mode = Environment.BG_SKY
+	_environment.background_mode = Environment.BG_COLOR if VisualTuning.FEATURE_NIGHT_SKY else Environment.BG_SKY
 	_environment.sky = sky
 	_environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	_environment.ambient_light_color = Color(0.5, 0.55, 0.7)
@@ -119,6 +133,7 @@ func _apply(t: float) -> void:
 	_sky_material.ground_horizon_color = fog
 	_sky_material.ground_bottom_color = fog
 	if _night_sky != null:
+		_environment.background_color = fog
 		_night_sky.set_shader_parameter(&"sky_top", _sky_material.sky_top_color)
 		_night_sky.set_shader_parameter(&"sky_horizon", _sky_material.sky_horizon_color)
 		_night_sky.set_shader_parameter(&"ground", fog)
@@ -136,3 +151,12 @@ func _apply_quality() -> void:
 func _on_settings_changed() -> void:
 	_apply_quality()
 	_apply(smoothstep(0.0, 1.0, _fade))
+
+
+## Keeps the sky dome centred on whichever camera is rendering.
+func _process(_delta: float) -> void:
+	if _dome == null:
+		return
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	if camera != null:
+		_dome.global_position = camera.global_position

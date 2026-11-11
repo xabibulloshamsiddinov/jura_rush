@@ -1,6 +1,32 @@
 # Changelog
 
-## 1.1.0 (in progress)
+## 1.2.0 (in progress) - UI, visuals and robustness pass
+
+### Look and readability
+- One tuning script for every look value: `scripts/vfx/visual_tuning.gd` (glow, coins, player rim,
+  obstacle warnings, shadow, atmosphere) with FEATURE_* flags to switch effects off per device.
+- Coins 60 % size, shrink near the camera, removed once behind the runner, colour capped below
+  the glow threshold; glow without bloom, SCREEN blend (no white blow-out).
+- Player rim light; passed obstacles hidden; barrier warning glow pulses and shows through fog;
+  chevron lane marker in front of barriers; fog starts at 85 m; contact shadow follows the track.
+- Night sky dome (stars, moon, skyline), flickering windows, rail sparks, tunnels and bridges,
+  colour theme every 500 m.
+
+### UI
+- Fonts: Orbitron (headings), Rajdhani (body), Exo 2 Cyrillic fallback (SIL OFL, assets/fonts).
+- One shared Godot Theme (UITheme.godot_theme) with neon button variations; vector coin / key icons.
+- Main menu: runner framed above the buttons, pulsing PLAY, merged Shop, labelled keys,
+  Daily Run shows the next reward.
+- Shop: 3D SubViewport preview, kinetic list, clear button states, purchase confirmation.
+- Settings: Music / SFX on-off, Show FPS (FPS, CPU / GPU frame time, draw calls).
+
+### Tech
+- All texts in one translation file `localization/strings.csv` (en / uz / ru) through
+  TranslationServer; strings_table.gd removed.
+- Optional single music file `assets/audio/music.ogg` replaces the synth layers.
+- Dev tools: `-- --ui-shots=<dir>`, `-- --shot-burst=N`, `-- --perf-log`.
+
+## 1.1.0
 
 ### 2 Player versus mode
 - "Neon Pursuit": two cars, 5-lane highway, civilian traffic, police cruisers that catch you

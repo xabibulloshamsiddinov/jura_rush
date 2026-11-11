@@ -25,6 +25,9 @@ func _ready() -> void:
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# The one shared Godot Theme: every screen below inherits fonts and neon button styles.
 	_root.theme = UITheme.godot_theme()
+	# FPS / draw-call readout above every screen (Settings > Show FPS).
+	var perf: PerfOverlay = PerfOverlay.new()
+	_layer.add_child(perf)
 	_layer.add_child(_root)
 	_apply_safe_area()
 	get_viewport().size_changed.connect(_apply_safe_area)

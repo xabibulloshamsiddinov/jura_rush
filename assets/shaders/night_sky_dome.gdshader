@@ -1,7 +1,9 @@
-// Night sky: biome gradient (set by BiomeDirector), a star field, a moon and a distant city
-// skyline silhouette with a few lit windows along the horizon. No TIME, so Godot never has to
-// re-render the sky every frame (static radiance = cheap on phones).
-shader_type sky;
+// Night sky drawn on a dome that follows the camera (BiomeDirector): biome gradient, a star
+// field, a moon and a distant skyline with a few lit windows along the horizon.
+// A dome instead of a Sky resource: a custom Sky shader made frame time creep up on the test
+// device (radiance work), while this is one cheap unshaded draw with no radiance at all.
+shader_type spatial;
+render_mode unshaded, cull_front, depth_draw_never, fog_disabled, shadows_disabled;
 
 uniform vec4 sky_top : source_color = vec4(0.01, 0.01, 0.06, 1.0);
 uniform vec4 sky_horizon : source_color = vec4(0.22, 0.05, 0.38, 1.0);
@@ -19,8 +21,14 @@ float hash12(vec2 p) {
 	return fract((p3.x + p3.y) * p3.z);
 }
 
-void sky() {
-	vec3 d = normalize(EYEDIR);
+varying vec3 v_dir;
+
+void vertex() {
+	v_dir = VERTEX;   // dome centred on the camera: local vertex = view direction (world axes)
+}
+
+void fragment() {
+	vec3 d = normalize(v_dir);
 	float h = d.y;
 	vec3 col = mix(sky_horizon.rgb, sky_top.rgb, smoothstep(0.0, 0.55, h));
 
@@ -55,5 +63,5 @@ void sky() {
 	}
 
 	col = mix(ground.rgb, col, smoothstep(-0.06, 0.0, h));
-	COLOR = col;
+	ALBEDO = col;
 }
