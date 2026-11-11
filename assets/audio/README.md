@@ -15,3 +15,10 @@ import settings for those three).
 To replace the music, create an `AudioConfig` resource, save it as `config/audio_config.tres`
 and assign `music_menu`, `music_drums`, `music_bass`, `music_lead`. The four tracks play together
 and are mixed by speed, so they must be loops of identical length and tempo.
+
+## One music file instead of the synth layers
+
+Drop a single looping synthwave track here as `music.ogg` (or `music.mp3` / `music.wav`).
+AudioManager finds it at boot, loops it (menu and runs, slightly louder at high speed) and skips
+the four synthesised layers. Use a CC0 / royalty-free track and note its licence next to it.
+Music and sound effects each have a volume slider and an ON/OFF toggle in Settings (saved).

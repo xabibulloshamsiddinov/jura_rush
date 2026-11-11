@@ -33,7 +33,9 @@ func build() -> void:
 	var list: VBoxContainer = UIKit.vbox(14)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list)
+	_toggle(list, &"settings.music_on", "music_on")
 	_slider(list, &"settings.music", "music", 0.0, 1.0)
+	_toggle(list, &"settings.sfx_on", "sfx_on")
 	_slider(list, &"settings.sfx", "sfx", 0.0, 1.0)
 	_slider(list, &"settings.ambience", "ambience", 0.0, 1.0)
 	_slider(list, &"settings.shake", "shake", 0.0, 1.0)

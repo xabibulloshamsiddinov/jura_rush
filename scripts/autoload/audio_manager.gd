@@ -7,6 +7,11 @@ const VOICES: int = 14
 const VOICES_3D: int = 3
 const BUSES: Array[StringName] = [&"Music", &"SFX", &"UI", &"Ambience"]
 const SETTING_OF_BUS: Dictionary = {&"Music": "music", &"SFX": "sfx", &"UI": "sfx", &"Ambience": "ambience"}
+## Mute toggle per bus (Settings: Music ON/OFF, Sound effects ON/OFF).
+const TOGGLE_OF_BUS: Dictionary = {&"Music": "music_on", &"SFX": "sfx_on", &"UI": "sfx_on", &"Ambience": "sfx_on"}
+## A single music file dropped at res://assets/audio/music.ogg (or .mp3 / .wav) replaces the
+## synthesised layers and loops in the menu and in runs.
+const MUSIC_TRACK_BASE: String = "res://assets/audio/music"
 const COIN_CHAIN_RESET: float = 0.6
 const COIN_CHAIN_MAX: int = 12
 
@@ -84,7 +89,11 @@ func build_async(progress: Callable, with_music: bool = true) -> void:
 		if i % 4 == 3:
 			progress.call(float(i) / float(ids.size()) * 0.6)
 			await get_tree().process_frame
-	if with_music:
+	var track: AudioStream = _find_music_track() if with_music else null
+	if track != null:
+		_add_music_layer(&"track", track)
+		(_music[&"track"] as AudioStreamPlayer).play()
+	elif with_music:
 		var seq: MusicSequencer = MusicSequencer.new(config.bpm)
 		_add_music_layer(&"drums", config.music_drums if config.music_drums != null else seq.build_drums())
 		progress.call(0.7)
@@ -223,7 +232,8 @@ func _apply_bus(bus: StringName) -> void:
 	if index < 0:
 		return
 	var linear: float = SettingsManager.get_float(str(SETTING_OF_BUS[bus]))
-	AudioServer.set_bus_mute(index, linear <= 0.001)
+	var enabled: bool = SettingsManager.get_bool(str(TOGGLE_OF_BUS[bus]))
+	AudioServer.set_bus_mute(index, linear <= 0.001 or not enabled)
 	var db: float = linear_to_db(maxf(linear, 0.001))
 	if bus == &"Music":
 		db += _duck_db
@@ -242,6 +252,10 @@ func _add_music_layer(layer: StringName, stream: AudioStream) -> void:
 
 func _update_music_targets() -> void:
 	var i: float = _intensity
+	if _music.has(&"track"):
+		var level: float = {&"menu": 0.75, &"game": 0.85 + 0.15 * i}.get(_music_mode, 0.0)
+		_music_target = {&"track": level}
+		return
 	match _music_mode:
 		&"menu":
 			_music_target = {&"pad": 0.9, &"bass": 0.35, &"lead": 0.22, &"drums": 0.0}
@@ -250,6 +264,22 @@ func _update_music_targets() -> void:
 					&"lead": smoothstep(0.25, 0.75, i) * 0.8}
 		_:
 			_music_target = {&"pad": 0.0, &"bass": 0.0, &"lead": 0.0, &"drums": 0.0}
+
+
+## The optional single music file (looping), or null when the synth layers should play.
+func _find_music_track() -> AudioStream:
+	for ext: String in [".ogg", ".mp3", ".wav"]:
+		var path: String = MUSIC_TRACK_BASE + ext
+		if ResourceLoader.exists(path):
+			var stream: AudioStream = ResourceLoader.load(path) as AudioStream
+			if stream is AudioStreamOggVorbis:
+				(stream as AudioStreamOggVorbis).loop = true
+			elif stream is AudioStreamMP3:
+				(stream as AudioStreamMP3).loop = true
+			elif stream is AudioStreamWAV:
+				(stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
+			return stream
+	return null
 
 
 ## Finds a free voice, or steals the lowest-priority one if it is less important.

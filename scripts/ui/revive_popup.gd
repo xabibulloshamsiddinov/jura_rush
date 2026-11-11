@@ -29,8 +29,12 @@ func build() -> void:
 	_timer.process_mode = Node.PROCESS_MODE_ALWAYS
 	_timer.finished.connect(_decline)
 	column.add_child(_timer)
+	var wallet_row: HBoxContainer = UIKit.hbox(12)
+	wallet_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	wallet_row.add_child(KeyIcon.new(float(UIKit.scaled(ui.size_body))))
 	_wallet = UIKit.label("", ui.size_body, ui.cyan)
-	column.add_child(_wallet)
+	wallet_row.add_child(_wallet)
+	column.add_child(wallet_row)
 	_keys_button = UIKit.button("", &"primary")
 	_keys_button.feedback = &"confirm"
 	_keys_button.pressed.connect(func() -> void:
@@ -53,7 +57,7 @@ func on_enter(_args: Dictionary) -> void:
 	_keys_button.text = Tr.f(&"revive.keys", {"n": cost})
 	_keys_button.disabled = SaveSystem.keys() < cost
 	_ad_button.disabled = false
-	_wallet.text = "# %d" % SaveSystem.keys()
+	_wallet.text = Tr.f(&"revive.wallet", {"n": SaveSystem.keys()})
 	_timer.glyph = ""
 	_timer.start(GameConfig.current().revive_timer)
 	UITween.pop(_panel, 0.0, 0.85)

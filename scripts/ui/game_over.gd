@@ -3,7 +3,7 @@
 extends UIScreen
 
 var _score: Label = null
-var _coins: Label = null
+var _coins: CoinCounter = null
 var _distance: Label = null
 var _best: Label = null
 var _daily: Label = null
@@ -30,9 +30,10 @@ func build() -> void:
 	stats.add_child(_score)
 	_best = UIKit.label("", ui.size_h2, ui.yellow)
 	stats.add_child(_best)
-	_coins = UIKit.label("", ui.size_h2, ui.yellow)
+	stats.add_child(UIKit.label(tr_key(&"over.coins_run"), ui.size_small, ui.text_dim))
+	_coins = CoinCounter.new(ui.size_h2, ui.yellow, HORIZONTAL_ALIGNMENT_CENTER)
 	stats.add_child(_coins)
-	_distance = UIKit.label("", ui.size_body, ui.text_dim)
+	_distance = UIKit.label("", ui.size_h2, ui.text)
 	stats.add_child(_distance)
 	_daily = UIKit.label("", ui.size_body, ui.cyan)
 	stats.add_child(_daily)
@@ -68,8 +69,8 @@ func on_enter(_args: Dictionary) -> void:
 	_double.visible = coins > 0
 	_score.text = "0"
 	UITween.count_up(_score, final_score, 1.1, "", 0.2)
-	_coins.text = "o 0"
-	UITween.count_up(_coins, coins, 0.8, "o ", 0.9)
+	_coins.text = "0"
+	UITween.count_up(_coins.label, coins, 0.8, "", 0.9)
 	_distance.text = "%s: %d m" % [tr_key(&"over.distance"), int(result.get("distance", 0))]
 	var new_best: bool = bool(result.get("new_best", false))
 	_best.text = tr_key(&"over.new_best") if new_best else "%s: %s" % [tr_key(&"over.best"),
@@ -87,6 +88,8 @@ func on_enter(_args: Dictionary) -> void:
 			UITween.shine(_panel)
 			UITween.bump(_best, 1.3))
 	_fill_missions()
+	# Smooth entrance: the results card pops in while the screen fades in (SceneRouter).
+	UITween.pop(_panel, 0.0, 0.85)
 
 
 func handle_back() -> bool:
@@ -129,6 +132,6 @@ func _on_double() -> void:
 		_doubled = true
 		var coins: int = int(GameState.last_result.get("coins", 0))
 		SaveSystem.add_coins(coins)
-		UITween.count_up(_coins, coins * 2, 0.6, "o ")
+		UITween.count_up(_coins.label, coins * 2, 0.6, "")
 		UITween.shine(_coins)
 		GameEvents.ui_feedback.emit(&"confirm"))

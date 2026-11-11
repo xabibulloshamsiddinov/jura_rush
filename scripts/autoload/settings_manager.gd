@@ -5,6 +5,8 @@ extends Node
 const DEFAULTS: Dictionary = {
 	"music": 0.7,
 	"sfx": 0.9,
+	"music_on": true,
+	"sfx_on": true,
 	"ambience": 0.6,
 	"vibration": true,
 	"quality": 1,

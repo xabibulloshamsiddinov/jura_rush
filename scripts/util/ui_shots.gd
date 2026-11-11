@@ -36,6 +36,19 @@ func _ready() -> void:
 		await _wait(0.6)
 		await _save(String(id))
 		SceneRouter.back()
+	# Flow screens with a made-up result (layout check only).
+	GameState.last_result = {"score": 52340, "coins": 187, "distance": 1240, "best": 52340,
+			"new_best": true, "daily_reward": 200, "daily_streak": 2}
+	SceneRouter.show_screen(&"game_over")
+	await _wait(2.6)
+	await _save("game_over")
+	SceneRouter.push(&"revive_popup", {})
+	await _wait(0.8)
+	await _save("revive")
+	SceneRouter.close(&"revive_popup")
+	SceneRouter.push(&"tutorial", {})
+	await _wait(1.2)
+	await _save("tutorial")
 	await _wait(0.3)
 	get_tree().quit()
 
