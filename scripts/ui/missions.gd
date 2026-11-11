@@ -89,8 +89,12 @@ func _add_row(row: Dictionary, delay: float) -> void:
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	head.add_child(text)
-	head.add_child(UIKit.label(tr_key(&"missions.done") if done else "o %d" % def.reward_coins,
-			ui.size_small, ui.yellow))
+	if done:
+		head.add_child(UIKit.label(tr_key(&"missions.done"), ui.size_small, ui.yellow))
+	else:
+		var reward: CoinCounter = CoinCounter.new(ui.size_small, ui.yellow)
+		reward.set_amount(def.reward_coins)
+		head.add_child(reward)
 	var bar: ProgressBar = UIKit.progress(0.0, float(row["target"]), ui.yellow if done else ui.cyan)
 	column.add_child(bar)
 	column.add_child(UIKit.label("%s / %s" % [MathUtils.group_digits(int(row["value"])),

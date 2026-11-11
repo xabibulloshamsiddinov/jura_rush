@@ -4,6 +4,7 @@
 ## Command line (after "--"):  --bot            start with the test bot playing
 ##                             --bot-soak=600   headless bot soak test for N simulated seconds
 ##                             --shot=path.png  save a screenshot a few seconds in, then quit
+##                             --ui-shots=dir   screenshot every menu screen into dir, then quit
 extends Node
 
 const WORLD_SCENE: PackedScene = preload("res://scenes/game/game_world.tscn")
@@ -18,14 +19,17 @@ func _ready() -> void:
 	var soak_seconds: float = 0.0
 	var shot_path: String = ""
 	var use_bot: bool = false
+	var ui_shots_dir: String = ""
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--bot-soak="):
 			soak_seconds = float(arg.get_slice("=", 1))
 		elif arg.begins_with("--shot="):
 			shot_path = arg.get_slice("=", 1)
+		elif arg.begins_with("--ui-shots="):
+			ui_shots_dir = arg.get_slice("=", 1)
 		elif arg == "--bot":
 			use_bot = true
-	if soak_seconds > 0.0 or not shot_path.is_empty():
+	if soak_seconds > 0.0 or not shot_path.is_empty() or not ui_shots_dir.is_empty():
 		# Automated runs must never touch the real profile.
 		SaveSystem.path = "user://automation_save.json"
 		SaveSystem.data = SaveCodec.defaults()
@@ -53,5 +57,7 @@ func _ready() -> void:
 		add_child(BotSoak.new(world, soak_seconds))
 	elif not shot_path.is_empty():
 		add_child(ScreenshotRun.new(world, shot_path))
+	elif not ui_shots_dir.is_empty():
+		add_child(UiShots.new(ui_shots_dir))
 	elif use_bot:
 		world.bot.enabled = true
