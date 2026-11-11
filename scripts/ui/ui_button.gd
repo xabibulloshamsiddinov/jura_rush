@@ -43,7 +43,7 @@ func _on_down() -> void:
 	_ripple_pos = get_local_mouse_position()
 	_ripple_t = 0.0
 	set_process(true)
-	_scale_to(0.94)
+	_scale_to(0.95)
 
 
 func _on_hover() -> void:

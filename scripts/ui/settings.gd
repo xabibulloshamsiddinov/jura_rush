@@ -105,7 +105,7 @@ func _cycle(parent: Control, key: StringName, setting: String, values: Array, na
 	var index: int = maxi(values.find(SettingsManager.get_value(setting)), 0)
 	if setting == "quality":
 		index = clampi(int(SettingsManager.get_value(setting)), 0, values.size() - 1)
-	var b: UIButton = UIKit.button(str(names[index]), &"accent", 320.0)
+	var b: UIButton = UIKit.button(str(names[index]), &"secondary", 320.0)
 	b.pressed.connect(func() -> void:
 		var next: int = (index + 1) % values.size()
 		SettingsManager.set_value(setting, values[next])

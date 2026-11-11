@@ -53,7 +53,7 @@ func build() -> void:
 	menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu.pressed.connect(func() -> void: GameEvents.request_menu.emit())
 	row.add_child(menu)
-	var shop: UIButton = UIKit.button(tr_key(&"over.shop"), &"accent")
+	var shop: UIButton = UIKit.button(tr_key(&"over.shop"), &"secondary")
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shop.pressed.connect(func() -> void: SceneRouter.push(&"shop", {"tab": 2}))
 	row.add_child(shop)

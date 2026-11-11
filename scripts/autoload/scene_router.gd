@@ -23,6 +23,8 @@ func _ready() -> void:
 	add_child(_layer)
 	_root = Control.new()
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The one shared Godot Theme: every screen below inherits fonts and neon button styles.
+	_root.theme = UITheme.godot_theme()
 	_layer.add_child(_root)
 	_apply_safe_area()
 	get_viewport().size_changed.connect(_apply_safe_area)

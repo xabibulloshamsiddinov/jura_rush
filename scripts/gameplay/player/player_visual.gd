@@ -90,9 +90,16 @@ func animate(delta: float, cadence: float, lean: float) -> void:
 	var leg_r: float = 0.0
 	match pose:
 		Pose.IDLE:
-			target_pos.y = sin(_pose_time * 2.0) * 0.02
-			arm_l = 0.08 + sin(_pose_time * 2.0) * 0.05
-			arm_r = -arm_l
+			# Breathing bob, a slow weight shift from foot to foot and loose arms.
+			var breath: float = sin(_pose_time * 2.0)
+			var shift: float = sin(_pose_time * 0.9)
+			target_pos.y = breath * 0.03
+			target_rot.z += shift * 0.05
+			target_rot.x = breath * 0.02
+			arm_l = 0.1 + breath * 0.07
+			arm_r = -0.1 + sin(_pose_time * 2.0 + 0.6) * 0.07
+			leg_l = maxf(shift, 0.0) * 0.12
+			leg_r = maxf(-shift, 0.0) * 0.12
 		Pose.RUN:
 			target_rot.x = -0.18
 			target_pos.y = absf(swing) * 0.07

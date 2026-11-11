@@ -3,19 +3,14 @@
 class_name UIKit
 extends RefCounted
 
-static var _font: Font = null
-
-
-## The UI font: the theme's font if set, otherwise a bold system sans-serif.
+## Body font of the shared theme (Rajdhani + Cyrillic fallback).
 static func font() -> Font:
-	if _font == null:
-		_font = UITheme.current().font
-		if _font == null:
-			var system: SystemFont = SystemFont.new()
-			system.font_names = PackedStringArray(["Roboto", "Noto Sans", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"])
-			system.font_weight = 800
-			_font = system
-	return _font
+	return UITheme.body_font()
+
+
+## Heading font of the shared theme (Orbitron + Cyrillic fallback).
+static func heading_font() -> Font:
+	return UITheme.heading()
 
 
 ## Font size after the "large text" accessibility option.
@@ -30,7 +25,8 @@ static func label(text: String, size: int, color: Color = Color.WHITE,
 	node.text = text
 	node.horizontal_alignment = align
 	node.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	node.add_theme_font_override(&"font", font())
+	# Big text (titles, score, headings) uses the futuristic heading font.
+	node.add_theme_font_override(&"font", heading_font() if size >= UITheme.current().size_h1 else font())
 	node.add_theme_font_size_override(&"font_size", scaled(size))
 	node.add_theme_color_override(&"font_color", color)
 	node.add_theme_color_override(&"font_outline_color", Color(0.0, 0.0, 0.0, 0.6))
@@ -52,35 +48,19 @@ static func box(color: Color, radius: int = -1, border: Color = Color.TRANSPAREN
 	return style
 
 
-## Neon button. style: &"primary" (cyan), &"accent" (magenta), &"gold", &"ghost", &"danger".
+## Neon button from the shared theme. style: &"primary" (cyan), &"secondary" (magenta),
+## &"accent" (yellow), &"success" (green), &"danger" (red), &"ghost" (dim). &"gold" is an old
+## alias of &"accent". Disabled buttons automatically use the dim grey style.
 static func button(text: String, style: StringName = &"primary", min_width: float = 0.0) -> UIButton:
 	var theme: UITheme = UITheme.current()
+	if style == &"gold":
+		style = &"accent"
 	var node: UIButton = UIButton.new()
 	node.text = text
 	node.custom_minimum_size = Vector2(min_width, float(theme.button_height))
-	var color: Color = theme.cyan
-	match style:
-		&"accent":
-			color = theme.magenta
-		&"gold":
-			color = theme.yellow
-		&"danger":
-			color = theme.danger
-		&"ghost":
-			color = theme.text_dim
-	var fill: Color = Color(color.r * 0.22, color.g * 0.22, color.b * 0.28, 0.92)
-	node.add_theme_stylebox_override(&"normal", box(fill, -1, color, 4))
-	node.add_theme_stylebox_override(&"hover", box(fill.lightened(0.12), -1, color.lightened(0.2), 4))
-	node.add_theme_stylebox_override(&"pressed", box(Color(color, 0.55), -1, Color.WHITE, 4))
-	node.add_theme_stylebox_override(&"disabled", box(Color(0.1, 0.1, 0.14, 0.8), -1, Color(0.3, 0.3, 0.36), 3))
-	node.add_theme_stylebox_override(&"focus", StyleBoxEmpty.new())
-	node.add_theme_font_override(&"font", font())
+	node.theme_type_variation = UITheme.button_variation(style)
 	node.add_theme_font_size_override(&"font_size", scaled(theme.size_body))
-	node.add_theme_color_override(&"font_color", Color.WHITE)
-	node.add_theme_color_override(&"font_hover_color", Color.WHITE)
-	node.add_theme_color_override(&"font_pressed_color", Color.WHITE)
-	node.add_theme_color_override(&"font_disabled_color", Color(0.5, 0.5, 0.56))
-	node.ripple_color = color.lightened(0.4)
+	node.ripple_color = UITheme.style_color(style).lightened(0.4)
 	return node
 
 

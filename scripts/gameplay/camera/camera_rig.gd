@@ -6,6 +6,13 @@ extends Node3D
 
 enum Mode { MENU, RUN, DEATH }
 
+## Menu framing: camera distance / eye height, aim height (below the chest = runner sits high
+## on screen) and field of view.
+const MENU_DISTANCE: float = 8.0
+const MENU_EYE_HEIGHT: float = 2.3
+const MENU_AIM_HEIGHT: float = 0.55
+const MENU_FOV: float = 55.0
+
 var mode: Mode = Mode.MENU
 var camera: Camera3D = null
 var shake: ScreenShake = null
@@ -87,11 +94,13 @@ func tick(delta: float) -> void:
 		Mode.MENU:
 			# Slow orbit showcasing the character, with a gentle idle sway.
 			_orbit += delta * 0.25
+			# The aim point sits BELOW the runner, so the runner is framed in the upper-middle of the
+			# screen and the menu buttons in the lower third never cover it.
 			var angle: float = 0.55 + sin(_orbit) * 0.5
-			var eye: Vector3 = target.position + Vector3(sin(angle) * 4.6, 2.3 + sin(_orbit * 0.7) * 0.2,
-					-cos(angle) * 4.6)
-			goal = Transform3D(Basis.IDENTITY, eye).looking_at(target.position + Vector3(0.0, 1.5, 0.0))
-			fov = 55.0
+			var eye: Vector3 = target.position + Vector3(sin(angle) * MENU_DISTANCE,
+					MENU_EYE_HEIGHT + sin(_orbit * 0.7) * 0.15, -cos(angle) * MENU_DISTANCE)
+			goal = Transform3D(Basis.IDENTITY, eye).looking_at(target.position + Vector3(0.0, MENU_AIM_HEIGHT, 0.0))
+			fov = MENU_FOV
 			_follow_x = target.position.x
 			_follow_y = 0.0
 		Mode.RUN:
