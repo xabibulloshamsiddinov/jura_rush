@@ -23,6 +23,14 @@ func _ready() -> void:
 	await _save("_run1")
 	await get_tree().create_timer(6.0).timeout
 	await _save("_run2")
+	# --shot-burst=N: N more gameplay frames, 1.5 s apart (visual review of a whole stretch).
+	var burst: int = 0
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--shot-burst="):
+			burst = int(arg.get_slice("=", 1))
+	for i in range(burst):
+		await get_tree().create_timer(1.5).timeout
+		await _save("_b%02d" % i)
 	GameEvents.request_pause.emit()
 	await get_tree().create_timer(0.6).timeout
 	await _save("_pause")

@@ -52,10 +52,11 @@ func _ready() -> void:
 func apply_character(def: CharacterDef) -> void:
 	if _custom or _root == null:
 		return
-	var limb_mat: ShaderMaterial = Mats.lit(def.limb_color)
-	_body.material_override = Mats.lit(def.body_color, def.glow_color, 0.25)
+	# player_lit = lit + rim light, so the runner stays readable among coins and neon.
+	var limb_mat: ShaderMaterial = Mats.player_lit(def.limb_color)
+	_body.material_override = Mats.player_lit(def.body_color, def.glow_color, 0.25)
 	_body.scale = Vector3(0.52 * def.bulk, 0.36, 0.4 * def.bulk)
-	_head.material_override = Mats.lit(def.head_color)
+	_head.material_override = Mats.player_lit(def.head_color)
 	for pivot: Node3D in [_arm_l, _arm_r, _leg_l, _leg_r]:
 		(pivot.get_child(0) as MeshInstance3D).material_override = limb_mat
 	if _accessory != null:

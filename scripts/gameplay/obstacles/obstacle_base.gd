@@ -126,6 +126,18 @@ func _build_visual() -> Node3D:
 	return Node3D.new()
 
 
+## Adds the faint chevron marker painted on the rails just in front of the obstacle (toward the
+## player), so the danger lane reads before the obstacle itself is clear.
+## Switch off with VisualTuning.FEATURE_LANE_WARNING.
+func _add_lane_warning(root: Node3D, color: Color) -> void:
+	if not VisualTuning.FEATURE_LANE_WARNING:
+		return
+	var marker_len: float = VisualTuning.LANE_WARNING_LENGTH
+	var z: float = maxf(def.size.z, 0.3) * 0.5 + VisualTuning.LANE_WARNING_GAP + marker_len * 0.5
+	root.add_child(MeshLib.mi(MeshLib.plane(), Mats.lane_warning(color), Vector3(0.0, 0.015, z),
+			Vector3(VisualTuning.LANE_WARNING_WIDTH, 1.0, marker_len)))
+
+
 ## Hook: adapts the visual to the configured length.
 func _apply_length() -> void:
 	pass

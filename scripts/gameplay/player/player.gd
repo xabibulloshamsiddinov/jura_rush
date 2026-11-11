@@ -77,7 +77,8 @@ func _ready() -> void:
 	trail = TrailComponent.new()
 	for component: Node in [health, shield, magnet, powerups, trail]:
 		add_child(component)
-	_shadow = MeshLib.mi(MeshLib.plane(), Mats.blob_shadow(), Vector3.ZERO, Vector3(1.3, 1.0, 1.3))
+	_shadow = MeshLib.mi(MeshLib.plane(), Mats.blob_shadow(), Vector3.ZERO,
+			Vector3(VisualTuning.SHADOW_SIZE.x, 1.0, VisualTuning.SHADOW_SIZE.y))
 	_shadow.top_level = true
 	add_child(_shadow)
 	machine = StateMachine.new()
@@ -168,7 +169,7 @@ func tick(delta: float) -> void:
 func idle_tick(delta: float, jogging: bool) -> void:
 	visual.set_pose(PlayerVisual.Pose.RUN if jogging else PlayerVisual.Pose.IDLE)
 	visual.animate(delta, 9.0, 0.0)
-	_shadow.global_position = Vector3(position.x, 0.03, 0.0)
+	_shadow.global_position = Vector3(position.x, VisualTuning.SHADOW_LIFT, 0.0)
 	trail.tick(delta, 0.0, position, false)
 
 
@@ -374,8 +375,13 @@ func _update_visual(delta: float) -> void:
 	var blinking: bool = _invulnerable_left > 0.0 and not is_dead and not dashing
 	visual.visible = not blinking or fmod(_invulnerable_left, 0.16) < 0.09
 	visual.animate(delta, 9.0 + speed_fraction() * 5.0, _lean)
-	var ground: float = maxf(track.get_ground_height(_cfg.lane_at_x(position.x), 0.0), 0.0)
-	_shadow.global_position = Vector3(position.x, ground + 0.03, 0.0)
-	var shrink: float = clampf(1.0 - (feet_y - ground) * 0.18, 0.4, 1.0)
-	_shadow.scale = Vector3(1.3 * shrink, 1.0, 1.3 * shrink)
+	# Contact shadow sits on whatever is under the runner (rails, roof, ramp); over a pit there is
+	# no surface to land on, so there is no shadow either.
+	var surface: float = track.get_ground_height(_cfg.lane_at_x(position.x), 0.0)
+	_shadow.visible = surface > -1.0
+	var ground: float = maxf(surface, 0.0)
+	_shadow.global_position = Vector3(position.x, ground + VisualTuning.SHADOW_LIFT, 0.0)
+	var shrink: float = clampf(1.0 - (feet_y - ground) * VisualTuning.SHADOW_SHRINK_PER_M,
+			VisualTuning.SHADOW_MIN_SCALE, 1.0)
+	_shadow.scale = Vector3(VisualTuning.SHADOW_SIZE.x * shrink, 1.0, VisualTuning.SHADOW_SIZE.y * shrink)
 	trail.tick(delta, track.world_speed, position + Vector3(0.0, 0.9, 0.25), not is_dead)

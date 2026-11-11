@@ -88,6 +88,7 @@ func advance(delta: float) -> void:
 	while chunks[0].position.z - _length > _cfg.recycle_threshold:
 		_recycle_head()
 	_snap()
+	_hide_passed_obstacles()
 	for chunk in chunks:
 		if not chunk.tickers.is_empty():
 			chunk.tick(delta, world_speed)
@@ -176,5 +177,19 @@ func _fill(chunk: TrackChunk) -> void:
 func _apply_fog() -> void:
 	var fog_end: float = _cfg.effective_fog_end(_chunk_count)
 	RenderingServer.global_shader_parameter_set(&"fog_end", fog_end)
-	RenderingServer.global_shader_parameter_set(&"fog_start", minf(_cfg.fog_start, fog_end * 0.5))
+	# VisualTuning.FOG_START pushes the fog out so obstacles read earlier; never past half the
+	# fog range, or the far fade would get too abrupt.
+	var fog_start: float = maxf(_cfg.fog_start, VisualTuning.FOG_START)
+	RenderingServer.global_shader_parameter_set(&"fog_start", minf(fog_start, fog_end * 0.5))
 	RenderingServer.global_shader_parameter_set(&"bend_y", _cfg.bend_strength_y)
+
+
+## Hides obstacles the runner has fully passed. They would otherwise stay on screen between the
+## camera (cam_back metres behind) and the player until their chunk is recycled. Only the two
+## nearest chunks can hold such obstacles. on_acquire() makes them visible again on reuse.
+func _hide_passed_obstacles() -> void:
+	for i in range(mini(2, chunks.size())):
+		var chunk: TrackChunk = chunks[i]
+		for o in chunk.obstacles:
+			if o.visible and chunk.position.z + o.position.z - o.length * 0.5 > VisualTuning.HIDE_PASSED_OBSTACLES_Z:
+				o.visible = false

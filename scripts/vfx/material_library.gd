@@ -9,6 +9,7 @@ const BUILDING_SHADER: Shader = preload("res://assets/shaders/building.gdshader"
 const COIN_SHADER: Shader = preload("res://assets/shaders/coin.gdshader")
 const BLOB_SHADER: Shader = preload("res://assets/shaders/blob_shadow.gdshader")
 const SHIELD_SHADER: Shader = preload("res://assets/shaders/shield_bubble.gdshader")
+const LANE_WARNING_SHADER: Shader = preload("res://assets/shaders/lane_warning.gdshader")
 
 static var _cache: Dictionary = {}
 
@@ -25,6 +26,48 @@ static func lit(color: Color, glow_color: Color = Color.BLACK, energy: float = 0
 	mat.set_shader_parameter(&"emission", glow_color)
 	mat.set_shader_parameter(&"emission_energy", energy)
 	mat.set_shader_parameter(&"accent_mix", accent_mix)
+	_cache[key] = mat
+	return mat
+
+
+## Runner material: the lit material plus a rim light so the silhouette reads against coins,
+## neon and dark track (VisualTuning.PLAYER_RIM_*).
+static func player_lit(color: Color, glow_color: Color = Color.BLACK, energy: float = 0.0) -> ShaderMaterial:
+	var key: String = "player|%s|%s|%.2f" % [color.to_html(), glow_color.to_html(), energy]
+	if _cache.has(key):
+		return _cache[key] as ShaderMaterial
+	var mat: ShaderMaterial = lit(color, glow_color, energy).duplicate() as ShaderMaterial
+	if VisualTuning.FEATURE_PLAYER_RIM:
+		mat.set_shader_parameter(&"rim_color", VisualTuning.PLAYER_RIM_COLOR)
+		mat.set_shader_parameter(&"rim_strength", VisualTuning.PLAYER_RIM_STRENGTH)
+		mat.set_shader_parameter(&"rim_power", VisualTuning.PLAYER_RIM_POWER)
+	_cache[key] = mat
+	return mat
+
+
+## Obstacle warning stripes: pulsing emission that partly shows through the fog, so barriers
+## read from further away.
+static func warning(glow_color: Color, energy: float) -> ShaderMaterial:
+	var key: String = "warn|%s|%.2f" % [glow_color.to_html(), energy]
+	if _cache.has(key):
+		return _cache[key] as ShaderMaterial
+	var mat: ShaderMaterial = lit(Color.BLACK, glow_color, energy).duplicate() as ShaderMaterial
+	mat.set_shader_parameter(&"pulse_speed", VisualTuning.WARNING_PULSE_SPEED)
+	mat.set_shader_parameter(&"pulse_amount", VisualTuning.WARNING_PULSE_AMOUNT)
+	mat.set_shader_parameter(&"fog_pierce", VisualTuning.WARNING_FOG_PIERCE)
+	_cache[key] = mat
+	return mat
+
+
+## Faint animated marker painted on the rails in front of an obstacle.
+static func lane_warning(color: Color) -> ShaderMaterial:
+	var key: String = "lanewarn|%s" % color.to_html()
+	if _cache.has(key):
+		return _cache[key] as ShaderMaterial
+	var mat: ShaderMaterial = ShaderMaterial.new()
+	mat.shader = LANE_WARNING_SHADER
+	mat.set_shader_parameter(&"tint", color)
+	mat.set_shader_parameter(&"opacity", VisualTuning.LANE_WARNING_OPACITY)
 	_cache[key] = mat
 	return mat
 
@@ -60,6 +103,9 @@ static func coin() -> ShaderMaterial:
 	if not _cache.has("coin"):
 		var mat: ShaderMaterial = ShaderMaterial.new()
 		mat.shader = COIN_SHADER
+		mat.set_shader_parameter(&"near_fade_start", VisualTuning.COIN_NEAR_FADE_START)
+		mat.set_shader_parameter(&"near_fade_end", VisualTuning.COIN_NEAR_FADE_END)
+		mat.set_shader_parameter(&"max_brightness", VisualTuning.COIN_MAX_BRIGHTNESS)
 		_cache["coin"] = mat
 	return _cache["coin"] as ShaderMaterial
 
@@ -69,6 +115,7 @@ static func blob_shadow() -> ShaderMaterial:
 	if not _cache.has("blob"):
 		var mat: ShaderMaterial = ShaderMaterial.new()
 		mat.shader = BLOB_SHADER
+		mat.set_shader_parameter(&"opacity", VisualTuning.SHADOW_OPACITY)
 		_cache["blob"] = mat
 	return _cache["blob"] as ShaderMaterial
 

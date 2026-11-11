@@ -4,9 +4,12 @@
 extends UIScreen
 
 const MAX_FLOATERS: int = 10
+const MULTIPLIER_COLOR: Color = Color(1.0, 0.45, 0.92)
+const MULTIPLIER_SIZE: int = 60
+const DISTANCE_SIZE: int = 48
 
 var _score: Label = null
-var _coins: Label = null
+var _coins: CoinCounter = null
 var _multiplier: Label = null
 var _distance: Label = null
 var _combo: Label = null
@@ -24,7 +27,9 @@ var _active_floaters: int = 0
 func build() -> void:
 	var ui: UITheme = UITheme.current()
 	var column: VBoxContainer = UIKit.vbox(6)
-	var wrap: MarginContainer = UIKit.margin(column, 36, 40)
+	# Extra inset on top of the router's safe area: the pause button must not sit in a rounded
+	# screen corner or under a notch.
+	var wrap: MarginContainer = UIKit.margin(column, 56, 64)
 	UIKit.fill(wrap)
 	add_child(wrap)
 	var top: HBoxContainer = UIKit.hbox(20)
@@ -36,15 +41,18 @@ func build() -> void:
 	_score = UIKit.label("0", ui.size_h1, ui.text)
 	_score.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_score)
-	_coins = UIKit.label("o 0", ui.size_h2, ui.yellow, HORIZONTAL_ALIGNMENT_RIGHT)
+	_coins = CoinCounter.new(ui.size_h2, ui.yellow, HORIZONTAL_ALIGNMENT_RIGHT)
 	_coins.custom_minimum_size = Vector2(190.0, 0.0)
 	top.add_child(_coins)
 	_secondary = UIKit.hbox(20)
 	column.add_child(_secondary)
-	_multiplier = UIKit.label("x1", ui.size_body, ui.magenta, HORIZONTAL_ALIGNMENT_LEFT)
+	# Multiplier and distance: bigger, bright and heavily outlined so they read on the dark city.
+	_multiplier = UIKit.label("x1", MULTIPLIER_SIZE, MULTIPLIER_COLOR, HORIZONTAL_ALIGNMENT_LEFT)
 	_multiplier.custom_minimum_size = Vector2(110.0, 0.0)
+	_strong_outline(_multiplier)
 	_secondary.add_child(_multiplier)
-	_distance = UIKit.label("0 m", ui.size_body, ui.text_dim)
+	_distance = UIKit.label("0 m", DISTANCE_SIZE, ui.text)
+	_strong_outline(_distance)
 	_distance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_secondary.add_child(_distance)
 	var balance: Control = Control.new()
@@ -79,7 +87,7 @@ func connect_events() -> void:
 	GameEvents.score_changed.connect(func(value: int) -> void:
 		_score.text = MathUtils.group_digits(value))
 	GameEvents.coins_changed.connect(func(value: int) -> void:
-		_coins.text = "o " + str(value)
+		_coins.text = str(value)
 		if visible and value > 0:
 			UITween.bump(_coins, 1.18))
 	GameEvents.distance_changed.connect(func(metres: int) -> void: _distance.text = "%d m" % metres)
@@ -102,10 +110,6 @@ func connect_events() -> void:
 	GameEvents.mission_set_completed.connect(func(multiplier: int) -> void:
 		_show_banner(Tr.f(&"toast.set", {"n": multiplier})))
 	GameEvents.mystery_box_opened.connect(_on_box)
-	GameEvents.speed_changed.connect(func(speed: float) -> void:
-		# Less clutter when things get intense.
-		if _secondary != null:
-			_secondary.modulate.a = lerpf(1.0, 0.55, GameConfig.current().speed_fraction(speed)))
 	GameEvents.run_started.connect(_on_run_started)
 
 
@@ -256,3 +260,8 @@ func _ignore_mouse(node: Node, except: Control) -> void:
 		if child is Control:
 			(child as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ignore_mouse(child, except)
+
+
+func _strong_outline(label: Label) -> void:
+	label.add_theme_color_override(&"font_outline_color", Color(0.0, 0.0, 0.02, 0.9))
+	label.add_theme_constant_override(&"outline_size", 12)

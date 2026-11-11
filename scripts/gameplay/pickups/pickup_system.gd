@@ -59,7 +59,9 @@ func _sweep_field(field: CoinField, field_z: float, delta: float, step: float) -
 			continue
 		var pos: Vector3 = field.positions[i]
 		var wz: float = field_z + pos.z
-		if wz > 6.0:
+		# Gone once it is behind the runner: a coin between the player and the camera would
+		# otherwise fill the screen.
+		if wz > VisualTuning.COIN_BEHIND_KILL_Z:
 			field.kill(i)
 			continue
 		if magnet_on and state == CoinField.ALIVE and absf(wz) < player.magnet.radius:

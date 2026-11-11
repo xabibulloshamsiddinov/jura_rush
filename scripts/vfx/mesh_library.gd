@@ -79,9 +79,9 @@ static func plane() -> PlaneMesh:
 static func coin() -> CylinderMesh:
 	if _coin == null:
 		_coin = CylinderMesh.new()
-		_coin.top_radius = 0.34
-		_coin.bottom_radius = 0.34
-		_coin.height = 0.08
+		_coin.top_radius = VisualTuning.COIN_RADIUS
+		_coin.bottom_radius = VisualTuning.COIN_RADIUS
+		_coin.height = VisualTuning.COIN_THICKNESS
 		_coin.radial_segments = 10
 		_coin.rings = 1
 	return _coin

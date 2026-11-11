@@ -35,11 +35,14 @@ func _ready() -> void:
 	_environment.ambient_light_energy = 0.6
 	_environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	_environment.tonemap_mode = Environment.TONE_MAPPER_ACES
-	_environment.tonemap_white = 4.0
-	_environment.glow_intensity = 0.9
-	_environment.glow_bloom = 0.08
-	_environment.glow_hdr_threshold = 0.95
-	_environment.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
+	# All glow numbers live in VisualTuning so they can be tweaked in one place.
+	_environment.tonemap_white = VisualTuning.TONEMAP_WHITE
+	_environment.glow_intensity = VisualTuning.GLOW_INTENSITY
+	_environment.glow_strength = VisualTuning.GLOW_STRENGTH
+	_environment.glow_bloom = VisualTuning.GLOW_BLOOM
+	_environment.glow_hdr_threshold = VisualTuning.GLOW_HDR_THRESHOLD
+	_environment.glow_hdr_scale = VisualTuning.GLOW_HDR_SCALE
+	_environment.glow_blend_mode = VisualTuning.GLOW_BLEND_MODE
 	_environment.adjustment_enabled = true
 	_environment.adjustment_contrast = 1.08
 	_environment.adjustment_saturation = 1.15

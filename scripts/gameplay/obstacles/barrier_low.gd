@@ -13,4 +13,5 @@ func _build_visual() -> Node3D:
 			Vector3(0.0, h - 0.12, 0.0), Vector3(w + 0.04, 0.14, def.size.z + 0.04)))
 	root.add_child(MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, def.glow, 1.2),
 			Vector3(0.0, h * 0.4, 0.0), Vector3(w + 0.04, 0.08, def.size.z + 0.04)))
+	_add_lane_warning(root, def.glow)
 	return root
