@@ -30,6 +30,9 @@ var _cfg: GameConfig = GameConfig.current()
 var _builder: ChunkBuilder = null
 var _length: float = 30.0
 var _chunk_count: int = 0
+## Tunnel / bridge run in progress: kind and chunks still to place.
+var _feature_kind: TrackVisuals.Feature = TrackVisuals.Feature.NONE
+var _feature_left: int = 0
 var _last_emitted_speed: float = -1.0
 var _noise: FastNoiseLite = FastNoiseLite.new()
 var _bend_scale: float = 1.0
@@ -172,6 +175,7 @@ func _fill(chunk: TrackChunk) -> void:
 	_builder.begin(chunk, plan, arrival_speed).add_obstacles().add_coins().add_pickups() \
 			.add_decor(decor_set, generator.rng.range_i(0, 1 << 20), SettingsManager.decor_density()) \
 			.build()
+	chunk.set_feature(_next_feature())
 
 
 func _apply_fog() -> void:
@@ -193,3 +197,22 @@ func _hide_passed_obstacles() -> void:
 		for o in chunk.obstacles:
 			if o.visible and chunk.position.z + o.position.z - o.length * 0.5 > VisualTuning.HIDE_PASSED_OBSTACLES_Z:
 				o.visible = false
+
+
+## Occasional tunnel or bridge runs of a few chunks (VisualTuning.TRACK_FEATURE_*). Uses its own
+## RNG so the obstacle generator (and its tests / daily seed) is not affected.
+var _feature_rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
+
+func _next_feature() -> TrackVisuals.Feature:
+	if not VisualTuning.FEATURE_TUNNELS_BRIDGES:
+		return TrackVisuals.Feature.NONE
+	if _feature_left > 0:
+		_feature_left -= 1
+		return _feature_kind
+	if distance_travelled > 60.0 and _feature_rng.randf() < VisualTuning.TRACK_FEATURE_CHANCE:
+		_feature_kind = TrackVisuals.Feature.TUNNEL if _feature_rng.randf() < 0.5 else TrackVisuals.Feature.BRIDGE
+		_feature_left = _feature_rng.randi_range(VisualTuning.TRACK_FEATURE_MIN_CHUNKS,
+				VisualTuning.TRACK_FEATURE_MAX_CHUNKS) - 1
+		return _feature_kind
+	return TrackVisuals.Feature.NONE

@@ -7,6 +7,9 @@ render_mode unshaded, skip_vertex_transform;
 uniform vec4 albedo : source_color = vec4(0.05, 0.06, 0.12, 1.0);
 uniform float window_energy = 1.6;
 uniform float lit_ratio = 0.45;
+// Share of windows that switch on / off over time, and the switching speed (0 = static).
+uniform float flicker_ratio = 0.0;
+uniform float flicker_speed = 0.35;
 
 varying float v_fog;
 varying float v_shade;
@@ -35,6 +38,11 @@ void fragment() {
 	vec2 in_cell = fract(grid);
 	float rnd = hash21(cell + vec2(v_seed, v_seed * 1.7));
 	float lit = step(1.0 - lit_ratio, rnd);
+	float rnd2 = hash21(cell * 1.31 + vec2(v_seed * 2.3, 5.7));
+	if (rnd2 < flicker_ratio) {
+		// Each flickering window has its own slow on/off rhythm.
+		lit = step(0.45, fract(TIME * flicker_speed * (0.5 + rnd2 * 3.0) + rnd * 11.0));
+	}
 	float mask = step(0.2, in_cell.x) * step(in_cell.x, 0.8) * step(0.25, in_cell.y) * step(in_cell.y, 0.75);
 	vec3 win = mix(biome_accent.rgb, biome_accent2.rgb, step(0.8, rnd)) * window_energy;
 	vec3 col = albedo.rgb * COLOR.rgb * v_shade + win * lit * mask * v_side;

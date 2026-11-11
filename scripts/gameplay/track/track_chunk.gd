@@ -16,6 +16,9 @@ var pattern_id: StringName = &"empty"
 var length: float = 30.0
 
 var _decor: MultiMeshInstance3D = null
+## Tunnel / bridge geometry (shared meshes), hidden on normal chunks.
+var _feature: MeshInstance3D = null
+var feature: TrackVisuals.Feature = TrackVisuals.Feature.NONE
 var _cfg: GameConfig = GameConfig.current()
 
 
@@ -35,6 +38,11 @@ func _init() -> void:
 	add_child(_decor)
 	coins = CoinField.new()
 	add_child(coins)
+	_feature = MeshInstance3D.new()
+	_feature.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_feature.extra_cull_margin = 60.0
+	_feature.visible = false
+	add_child(_feature)
 
 
 ## Pool hook.
@@ -114,3 +122,16 @@ func tick(delta: float, world_speed: float) -> void:
 ## Regenerates the side buildings (called only when the chunk is recycled, never while visible).
 func set_decor(decor_set: int, decor_seed: int, per_side: int) -> void:
 	TrackVisuals.fill_decor(_decor.multimesh, decor_set, decor_seed, per_side, _cfg)
+
+
+## Turns this chunk into a tunnel or bridge section (or back to open track). Called on recycle.
+func set_feature(kind: TrackVisuals.Feature) -> void:
+	feature = kind
+	match kind:
+		TrackVisuals.Feature.TUNNEL:
+			_feature.mesh = TrackVisuals.tunnel_mesh(_cfg)
+		TrackVisuals.Feature.BRIDGE:
+			_feature.mesh = TrackVisuals.bridge_mesh(_cfg)
+	_feature.visible = kind != TrackVisuals.Feature.NONE
+	# Tunnel walls cover the buildings; bridges open the view to the sky and skyline.
+	_decor.visible = kind == TrackVisuals.Feature.NONE

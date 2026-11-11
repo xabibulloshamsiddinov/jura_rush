@@ -11,6 +11,15 @@ const RAIL_COLOR: Color = Color(0.45, 0.5, 0.62)
 const POLE_COLOR: Color = Color(0.1, 0.1, 0.16)
 
 static var _track_mesh: ArrayMesh = null
+static var _tunnel_mesh: ArrayMesh = null
+static var _bridge_mesh: ArrayMesh = null
+
+## Track features a chunk can carry (TrackChunk.set_feature).
+enum Feature { NONE, TUNNEL, BRIDGE }
+## Tunnel roof height: above the jetpack flight line and the camera while flying.
+const TUNNEL_HEIGHT: float = 9.5
+const TUNNEL_COLOR: Color = Color(0.045, 0.05, 0.1)
+const BRIDGE_COLOR: Color = Color(0.12, 0.13, 0.2)
 static var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
@@ -93,3 +102,67 @@ static func fill_decor(mm: MultiMesh, decor_set: int, decor_seed: int, per_side:
 			mm.set_instance_color(count, Color(shade, shade, shade * 1.1))
 			count += 1
 	mm.visible_instance_count = count
+
+
+## A tunnel section filling one chunk: walls, roof, ribs every 7.5 m, glowing roof strips and rib
+## lights (2 draw calls, shared by every chunk; consecutive tunnel chunks join seamlessly).
+static func tunnel_mesh(cfg: GameConfig) -> ArrayMesh:
+	if _tunnel_mesh != null:
+		return _tunnel_mesh
+	var length: float = cfg.chunk_length
+	var half_bed: float = cfg.lane_width * float(cfg.lane_count) * 0.5 + 0.6
+	var wall_x: float = half_bed + 2.4
+	var h: float = TUNNEL_HEIGHT
+	var mid_z: float = -length * 0.5
+	var solid: SurfaceTool = SurfaceTool.new()
+	solid.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var glow: SurfaceTool = SurfaceTool.new()
+	glow.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for side: float in [-1.0, 1.0]:
+		MeshLib.add_box(solid, Vector3(side * wall_x, h * 0.5, mid_z), Vector3(0.6, h, length), TUNNEL_COLOR)
+		MeshLib.add_box(glow, Vector3(side * (half_bed + 0.4), h - 0.45, mid_z), Vector3(0.18, 0.08, length))
+		MeshLib.add_box(glow, Vector3(side * (wall_x - 0.32), 1.2, mid_z), Vector3(0.05, 0.1, length))
+	MeshLib.add_box(solid, Vector3(0.0, h + 0.25, mid_z), Vector3(wall_x * 2.0 + 0.6, 0.5, length), TUNNEL_COLOR)
+	for i in range(4):
+		var z: float = -(float(i) + 0.5) * (length / 4.0)
+		for side: float in [-1.0, 1.0]:
+			MeshLib.add_box(solid, Vector3(side * (wall_x - 0.45), h * 0.5, z), Vector3(0.4, h, 0.7),
+					TUNNEL_COLOR.lightened(0.05))
+			MeshLib.add_box(glow, Vector3(side * (wall_x - 0.66), h * 0.5, z), Vector3(0.04, h * 0.8, 0.12))
+		MeshLib.add_box(solid, Vector3(0.0, h - 0.2, z), Vector3(wall_x * 2.0, 0.4, 0.7), TUNNEL_COLOR.lightened(0.05))
+	_tunnel_mesh = ArrayMesh.new()
+	solid.commit(_tunnel_mesh)
+	glow.commit(_tunnel_mesh)
+	_tunnel_mesh.surface_set_material(0, Mats.lit(Color.WHITE))
+	_tunnel_mesh.surface_set_material(1, Mats.lit(Color.BLACK, Color.WHITE, 1.6, 1.0))
+	return _tunnel_mesh
+
+
+## A bridge section: truss railings with glowing cables on both sides and girders under the
+## deck; the chunk hides its side buildings so the open sky and skyline show (2 draw calls).
+static func bridge_mesh(cfg: GameConfig) -> ArrayMesh:
+	if _bridge_mesh != null:
+		return _bridge_mesh
+	var length: float = cfg.chunk_length
+	var half_bed: float = cfg.lane_width * float(cfg.lane_count) * 0.5 + 0.6
+	var rail_x: float = half_bed + 1.4
+	var mid_z: float = -length * 0.5
+	var solid: SurfaceTool = SurfaceTool.new()
+	solid.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var glow: SurfaceTool = SurfaceTool.new()
+	glow.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for side: float in [-1.0, 1.0]:
+		MeshLib.add_box(solid, Vector3(side * rail_x, 1.1, mid_z), Vector3(0.18, 0.12, length), BRIDGE_COLOR)
+		MeshLib.add_box(solid, Vector3(side * rail_x, 3.4, mid_z), Vector3(0.3, 0.3, length), BRIDGE_COLOR)
+		MeshLib.add_box(glow, Vector3(side * rail_x, 3.6, mid_z), Vector3(0.08, 0.06, length))
+		MeshLib.add_box(solid, Vector3(side * (rail_x - 0.4), -1.2, mid_z), Vector3(0.5, 2.2, length), BRIDGE_COLOR)
+		for i in range(6):
+			var z: float = -(float(i) + 0.5) * (length / 6.0)
+			MeshLib.add_box(solid, Vector3(side * rail_x, 1.7, z), Vector3(0.22, 3.4, 0.22), BRIDGE_COLOR)
+			MeshLib.add_box(glow, Vector3(side * rail_x, 2.3, z - length / 12.0), Vector3(0.05, 0.05, length / 6.0 * 1.05))
+	_bridge_mesh = ArrayMesh.new()
+	solid.commit(_bridge_mesh)
+	glow.commit(_bridge_mesh)
+	_bridge_mesh.surface_set_material(0, Mats.lit(Color.WHITE))
+	_bridge_mesh.surface_set_material(1, Mats.lit(Color.BLACK, Color.WHITE, 1.4, 2.0))
+	return _bridge_mesh

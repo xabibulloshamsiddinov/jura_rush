@@ -56,6 +56,7 @@ var _buffered: Command = null
 var _capsule: CapsuleShape3D = null
 var _collider: CollisionShape3D = null
 var _shadow: MeshInstance3D = null
+var _sparks: CPUParticles3D = null
 
 
 func _ready() -> void:
@@ -81,6 +82,9 @@ func _ready() -> void:
 			Vector3(VisualTuning.SHADOW_SIZE.x, 1.0, VisualTuning.SHADOW_SIZE.y))
 	_shadow.top_level = true
 	add_child(_shadow)
+	if VisualTuning.FEATURE_RAIL_SPARKS:
+		_sparks = _make_sparks()
+		add_child(_sparks)
 	machine = StateMachine.new()
 	add_child(machine)
 	machine.add_state(RUN, RunState.new(), self)
@@ -384,4 +388,32 @@ func _update_visual(delta: float) -> void:
 	var shrink: float = clampf(1.0 - (feet_y - ground) * VisualTuning.SHADOW_SHRINK_PER_M,
 			VisualTuning.SHADOW_MIN_SCALE, 1.0)
 	_shadow.scale = Vector3(VisualTuning.SHADOW_SIZE.x * shrink, 1.0, VisualTuning.SHADOW_SIZE.y * shrink)
+	if _sparks != null:
+		# Only while actually grinding along the rails at speed.
+		_sparks.emitting = on_ground and not is_dead and surface <= 0.05 and speed_fraction() > 0.15 \
+				and not SettingsManager.get_bool("reduce_effects")
 	trail.tick(delta, track.world_speed, position + Vector3(0.0, 0.9, 0.25), not is_dead)
+
+
+## Small warm sparks thrown back from the rails under the runner (VisualTuning.FEATURE_RAIL_SPARKS).
+func _make_sparks() -> CPUParticles3D:
+	var p: CPUParticles3D = CPUParticles3D.new()
+	p.amount = maxi(4, int(float(VisualTuning.RAIL_SPARK_AMOUNT) * SettingsManager.particle_scale()))
+	p.lifetime = 0.35
+	p.emitting = false
+	p.local_coords = false
+	p.position = Vector3(0.0, 0.08, 0.15)
+	var mesh: BoxMesh = BoxMesh.new()
+	mesh.size = Vector3(0.03, 0.03, 0.12)
+	p.mesh = mesh
+	p.material_override = Mats.glow(Color(1.0, 0.75, 0.35), 2.5)
+	p.direction = Vector3(0.0, 0.6, 1.0)
+	p.spread = 35.0
+	p.initial_velocity_min = 3.0
+	p.initial_velocity_max = 6.0
+	p.gravity = Vector3(0.0, -14.0, 0.0)
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.2
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(0.45, 0.02, 0.05)
+	return p

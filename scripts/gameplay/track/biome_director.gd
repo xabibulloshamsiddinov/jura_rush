@@ -13,6 +13,8 @@ var index: int = 0
 var _cfg: GameConfig = GameConfig.current()
 var _environment: Environment = null
 var _sky_material: ProceduralSkyMaterial = null
+## Night sky shader (stars, moon, skyline); null when VisualTuning.FEATURE_NIGHT_SKY is off.
+var _night_sky: ShaderMaterial = null
 var _light: DirectionalLight3D = null
 var _from: BiomeDef = null
 var _to: BiomeDef = null
@@ -26,6 +28,13 @@ func _ready() -> void:
 	_sky_material.sky_curve = 0.25
 	var sky: Sky = Sky.new()
 	sky.sky_material = _sky_material
+	if VisualTuning.FEATURE_NIGHT_SKY:
+		_night_sky = ShaderMaterial.new()
+		_night_sky.shader = preload("res://assets/shaders/night_sky.gdshader")
+		_night_sky.set_shader_parameter(&"stars_amount", VisualTuning.SKY_STARS)
+		_night_sky.set_shader_parameter(&"moon_amount", VisualTuning.SKY_MOON)
+		_night_sky.set_shader_parameter(&"skyline_amount", VisualTuning.SKY_SKYLINE)
+		sky.sky_material = _night_sky
 	sky.radiance_size = Sky.RADIANCE_SIZE_32
 	_environment = Environment.new()
 	_environment.background_mode = Environment.BG_SKY
@@ -109,6 +118,12 @@ func _apply(t: float) -> void:
 	_sky_material.sky_horizon_color = horizon.lerp(fog, 0.6)
 	_sky_material.ground_horizon_color = fog
 	_sky_material.ground_bottom_color = fog
+	if _night_sky != null:
+		_night_sky.set_shader_parameter(&"sky_top", _sky_material.sky_top_color)
+		_night_sky.set_shader_parameter(&"sky_horizon", _sky_material.sky_horizon_color)
+		_night_sky.set_shader_parameter(&"ground", fog)
+		_night_sky.set_shader_parameter(&"skyline_color", fog.darkened(0.55))
+		_night_sky.set_shader_parameter(&"window_color", accent2)
 	_light.light_color = _from.light.lerp(_to.light, t)
 	_environment.ambient_light_color = _light.light_color.darkened(0.3)
 

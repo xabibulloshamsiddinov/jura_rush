@@ -69,3 +69,24 @@ const SHADOW_LIFT: float = 0.02
 ## Shadow shrink per metre of height while jumping, and its minimum scale.
 const SHADOW_SHRINK_PER_M: float = 0.16
 const SHADOW_MIN_SCALE: float = 0.45
+
+# --- Atmosphere (each one can be switched off if it costs too much on a phone) ----------------
+## Star field, moon and distant skyline in the sky shader (night_sky.gdshader). Off = the old
+## plain gradient sky.
+const FEATURE_NIGHT_SKY: bool = true
+const SKY_STARS: float = 1.0
+const SKY_MOON: float = 1.0
+const SKY_SKYLINE: float = 1.0
+## Building windows switch on and off at random (shader only, no scripts).
+const FEATURE_WINDOW_FLICKER: bool = true
+## Share of windows that flicker, and how fast.
+const WINDOW_FLICKER_RATIO: float = 0.18
+const WINDOW_FLICKER_SPEED: float = 0.35
+## Sparks from the rails under the runner's feet (CPU particles, scaled by the quality preset).
+const FEATURE_RAIL_SPARKS: bool = true
+const RAIL_SPARK_AMOUNT: int = 14
+## Tunnels and bridges: chance that a recycled chunk starts one, and how many chunks it lasts.
+const FEATURE_TUNNELS_BRIDGES: bool = true
+const TRACK_FEATURE_CHANCE: float = 0.12
+const TRACK_FEATURE_MIN_CHUNKS: int = 2
+const TRACK_FEATURE_MAX_CHUNKS: int = 4

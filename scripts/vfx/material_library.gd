@@ -94,6 +94,9 @@ static func building() -> ShaderMaterial:
 	if not _cache.has("building"):
 		var mat: ShaderMaterial = ShaderMaterial.new()
 		mat.shader = BUILDING_SHADER
+		if VisualTuning.FEATURE_WINDOW_FLICKER:
+			mat.set_shader_parameter(&"flicker_ratio", VisualTuning.WINDOW_FLICKER_RATIO)
+			mat.set_shader_parameter(&"flicker_speed", VisualTuning.WINDOW_FLICKER_SPEED)
 		_cache["building"] = mat
 	return _cache["building"] as ShaderMaterial
 
