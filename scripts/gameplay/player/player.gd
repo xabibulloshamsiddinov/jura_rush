@@ -76,6 +76,7 @@ func _ready() -> void:
 	powerups = PowerupController.new()
 	powerups.player = self
 	trail = TrailComponent.new()
+	trail.flat = true
 	for component: Node in [health, shield, magnet, powerups, trail]:
 		add_child(component)
 	_shadow = MeshLib.mi(MeshLib.plane(), Mats.blob_shadow(), Vector3.ZERO,
@@ -392,7 +393,7 @@ func _update_visual(delta: float) -> void:
 		# Only while actually grinding along the rails at speed.
 		_sparks.emitting = on_ground and not is_dead and surface <= 0.05 and speed_fraction() > 0.15 \
 				and not SettingsManager.get_bool("reduce_effects")
-	trail.tick(delta, track.world_speed, position + Vector3(0.0, 0.9, 0.25), not is_dead)
+	trail.tick(delta, track.world_speed, position + Vector3(0.0, 0.18, 0.3), not is_dead)
 
 
 ## Small warm sparks thrown back from the rails under the runner (VisualTuning.FEATURE_RAIL_SPARKS).

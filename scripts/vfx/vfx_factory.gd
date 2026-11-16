@@ -25,7 +25,7 @@ static func build(id: StringName) -> Node:
 		&"coin_pickup":
 			return _particles(6, 0.4, true, Color(2.2, 1.8, 0.5), 180.0, 1.5, 3.5, Vector3(0, -2, 0), 0.1, 0.22)
 		&"dust":
-			return _particles(5, 0.45, true, Color(0.55, 0.6, 0.8, 0.28), 60.0, 0.5, 1.6, Vector3(0, 1.0, 4.0), 0.07, 0.18)
+			return _particles(5, 0.45, true, Color(0.6, 0.45, 0.95, 0.3), 60.0, 0.5, 1.6, Vector3(0, 1.0, 4.0), 0.1, 0.24)
 		&"land":
 			return _particles(12, 0.55, true, Color(0.6, 0.65, 0.85, 0.4), 85.0, 1.5, 4.0, Vector3(0, 0.5, 5.0), 0.1, 0.3)
 		&"sparks":
@@ -83,6 +83,20 @@ static func _billboard_quad() -> QuadMesh:
 		_quad_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 		_quad_material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 		_quad_material.billboard_keep_scale = true
+		# Soft round sprite: without it every particle was a hard-edged square (dust read as
+		# grey boxes around the runner's feet).
+		var dot: Gradient = Gradient.new()
+		dot.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+		dot.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+		dot.add_point(0.35, Color(1.0, 1.0, 1.0, 0.75))
+		var tex: GradientTexture2D = GradientTexture2D.new()
+		tex.gradient = dot
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(1.0, 0.5)
+		tex.width = 64
+		tex.height = 64
+		_quad_material.albedo_texture = tex
 		_quad = QuadMesh.new()
 		_quad.material = _quad_material
 	return _quad

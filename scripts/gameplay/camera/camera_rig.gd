@@ -10,7 +10,7 @@ enum Mode { MENU, RUN, DEATH }
 ## on screen) and field of view.
 const MENU_DISTANCE: float = 8.0
 const MENU_EYE_HEIGHT: float = 2.3
-const MENU_AIM_HEIGHT: float = 0.55
+const MENU_AIM_HEIGHT: float = 0.85
 const MENU_FOV: float = 55.0
 
 var mode: Mode = Mode.MENU

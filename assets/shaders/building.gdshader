@@ -4,9 +4,14 @@ shader_type spatial;
 render_mode unshaded, skip_vertex_transform;
 #include "res://assets/shaders/world_common.gdshaderinc"
 
-uniform vec4 albedo : source_color = vec4(0.05, 0.06, 0.12, 1.0);
-uniform float window_energy = 1.6;
-uniform float lit_ratio = 0.45;
+uniform vec4 albedo : source_color = vec4(0.065, 0.04, 0.13, 1.0);
+uniform float window_energy = 1.35;
+uniform float lit_ratio = 0.42;
+// Window grid cell in metres (width, height) and the share of the cell the pane fills.
+uniform vec2 window_cell = vec2(1.5, 1.9);
+uniform vec2 window_fill = vec2(0.5, 0.48);
+// Share of lit windows in the second accent colour (magenta in the neon biome).
+uniform float accent2_ratio = 0.45;
 // Share of windows that switch on / off over time, and the switching speed (0 = static).
 uniform float flicker_ratio = 0.0;
 uniform float flicker_speed = 0.35;
@@ -33,7 +38,7 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 grid = v_face_uv / vec2(2.2, 2.8);
+	vec2 grid = v_face_uv / window_cell;
 	vec2 cell = floor(grid);
 	vec2 in_cell = fract(grid);
 	float rnd = hash21(cell + vec2(v_seed, v_seed * 1.7));
@@ -43,8 +48,13 @@ void fragment() {
 		// Each flickering window has its own slow on/off rhythm.
 		lit = step(0.45, fract(TIME * flicker_speed * (0.5 + rnd2 * 3.0) + rnd * 11.0));
 	}
-	float mask = step(0.2, in_cell.x) * step(in_cell.x, 0.8) * step(0.25, in_cell.y) * step(in_cell.y, 0.75);
-	vec3 win = mix(biome_accent.rgb, biome_accent2.rgb, step(0.8, rnd)) * window_energy;
-	vec3 col = albedo.rgb * COLOR.rgb * v_shade + win * lit * mask * v_side;
+	vec2 lo = (1.0 - window_fill) * 0.5;
+	float mask = step(lo.x, in_cell.x) * step(in_cell.x, 1.0 - lo.x) * step(lo.y, in_cell.y) * step(in_cell.y, 1.0 - lo.y);
+	// Hash of the cell decides the colour; lit windows are already rnd > 1 - lit_ratio, so rescale.
+	float pick = hash21(cell * 0.73 + vec2(v_seed * 3.1, 9.2));
+	vec3 win = mix(biome_accent.rgb, biome_accent2.rgb, step(1.0 - accent2_ratio, pick)) * window_energy;
+	// A faint glow band along each floor line, like light spilling from the windows.
+	float spill = smoothstep(0.5, 0.0, abs(in_cell.y - 0.5)) * 0.06 * v_side;
+	vec3 col = albedo.rgb * COLOR.rgb * v_shade + win * lit * mask * v_side + biome_accent2.rgb * spill;
 	ALBEDO = mix(col, fog_color.rgb, v_fog);
 }

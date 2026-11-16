@@ -5,10 +5,11 @@ class_name VisualTuning
 extends RefCounted
 
 # --- Glow / bloom (WorldEnvironment, applied by BiomeDirector) ---------------------------------
-## Overall glow strength. Was 0.9: neon and coins turned into white blobs.
-const GLOW_INTENSITY: float = 0.55
-## How much the glow spreads. Kept low so the halo stays tight around neon strips.
-const GLOW_STRENGTH: float = 0.85
+## Overall glow strength. Was 0.9 with ADDITIVE blend: neon and coins turned into white blobs.
+## With SCREEN blend and the coin brightness cap, 0.8 gives the neon halo of the key art.
+const GLOW_INTENSITY: float = 0.8
+## How much the glow spreads. A wider halo makes thin neon rails read as light, not lines.
+const GLOW_STRENGTH: float = 1.0
 ## Bloom adds glow to EVERYTHING, not only bright pixels. 0 = only HDR-bright pixels glow.
 const GLOW_BLOOM: float = 0.0
 ## Only pixels brighter than this glow. Coins are capped below it (see COIN_MAX_BRIGHTNESS),

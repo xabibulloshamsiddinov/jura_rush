@@ -45,9 +45,9 @@ func build() -> void:
 	column.add_child(top)
 
 	column.add_child(_gap(6.0))
-	var title: Label = UIKit.label(GameConfig.GAME_TITLE, ui.size_title, ui.cyan)
-	title.add_theme_constant_override(&"outline_size", 14)
-	title.add_theme_color_override(&"font_outline_color", Color(0.0, 0.05, 0.12, 0.9))
+	# Key-art style logo: stacked, slanted NEON / RAILS with a neon halo and a swoosh.
+	var title: GameLogo = GameLogo.new(GameConfig.GAME_TITLE)
+	title.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(title)
 	_best = UIKit.label("", ui.size_h1, ui.yellow)
 	_strong_outline(_best)

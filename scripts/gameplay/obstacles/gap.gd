@@ -1,9 +1,12 @@
 ## Gap / pit in a lane. It has no collision box: it removes the ground, so a runner who does not
-## jump simply falls in. Drawn as a dark slab with glowing warning edges.
+## jump simply falls in. Drawn as a dark slab with glowing warning edges. The slab top sits above
+## the neon rail tops (0.13 m) so the rails visibly end at the pit instead of bridging it.
 class_name Gap
 extends ObstacleBase
 
 const DEPTH: float = -30.0
+## Height of the slab top: just above the glowing rail tops of the track mesh.
+const SLAB_TOP: float = 0.16
 
 var _pit: MeshInstance3D = null
 var _edge_near: MeshInstance3D = null
@@ -25,7 +28,7 @@ func blocks(_feet_y: float, _top_y: float, _dz: float, _step: float) -> bool:
 
 func _build_visual() -> Node3D:
 	var root: Node3D = Node3D.new()
-	_pit = MeshLib.mi(MeshLib.box(), Mats.lit(def.color), Vector3(0.0, 0.02, 0.0))
+	_pit = MeshLib.mi(MeshLib.box(), Mats.lit(def.color), Vector3(0.0, SLAB_TOP * 0.5, 0.0))
 	_edge_near = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, def.glow, 2.4))
 	_edge_far = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, def.glow, 2.4))
 	root.add_child(_pit)
@@ -38,8 +41,8 @@ func _apply_length() -> void:
 	if _pit == null:
 		return
 	var w: float = def.size.x
-	_pit.scale = Vector3(w, 0.16, length)
-	_edge_near.position = Vector3(0.0, 0.1, length * 0.5)
+	_pit.scale = Vector3(w, SLAB_TOP, length)
+	_edge_near.position = Vector3(0.0, SLAB_TOP + 0.01, length * 0.5)
 	_edge_near.scale = Vector3(w, 0.06, 0.12)
-	_edge_far.position = Vector3(0.0, 0.1, -length * 0.5)
+	_edge_far.position = Vector3(0.0, SLAB_TOP + 0.01, -length * 0.5)
 	_edge_far.scale = Vector3(w, 0.06, 0.12)

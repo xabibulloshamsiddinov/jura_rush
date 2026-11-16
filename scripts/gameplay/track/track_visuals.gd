@@ -4,11 +4,16 @@ class_name TrackVisuals
 extends RefCounted
 
 const DECOR_CAPACITY: int = 24
-const GROUND_COLOR: Color = Color(0.05, 0.055, 0.1)
-const SIDE_COLOR: Color = Color(0.025, 0.028, 0.06)
-const TIE_COLOR: Color = Color(0.09, 0.08, 0.1)
-const RAIL_COLOR: Color = Color(0.45, 0.5, 0.62)
-const POLE_COLOR: Color = Color(0.1, 0.1, 0.16)
+## Track palette: deep violet bed, purple-grey ties, dark rail bodies under glowing neon tops
+## (matches the key art: cyan rails, magenta lane dashes and edges on a violet night track).
+const GROUND_COLOR: Color = Color(0.075, 0.04, 0.14)
+const SIDE_COLOR: Color = Color(0.035, 0.018, 0.075)
+const TIE_COLOR: Color = Color(0.11, 0.07, 0.16)
+const RAIL_COLOR: Color = Color(0.16, 0.15, 0.26)
+const POLE_COLOR: Color = Color(0.11, 0.08, 0.18)
+## Emission energy of the neon rail tops (biome accent) and of the magenta strips (accent 2).
+const RAIL_GLOW_ENERGY: float = 1.9
+const STRIP_GLOW_ENERGY: float = 1.7
 
 static var _track_mesh: ArrayMesh = null
 static var _tunnel_mesh: ArrayMesh = null
@@ -23,8 +28,9 @@ const BRIDGE_COLOR: Color = Color(0.12, 0.13, 0.2)
 static var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
-## The merged static mesh of one chunk: bed, rails, ties, lamp posts (surface 0, vertex
-## coloured) and glowing edge strips, lane dashes and lamp heads (surface 1).
+## The merged static mesh of one chunk: bed, rail bodies, ties, lamp posts (surface 0, vertex
+## coloured), neon rail tops and lamp heads in the biome accent (surface 1), and edge strips and
+## lane dashes in the second accent (surface 2). 3 draw calls, shared by every chunk.
 static func track_mesh(cfg: GameConfig) -> ArrayMesh:
 	if _track_mesh != null:
 		return _track_mesh
@@ -34,18 +40,21 @@ static func track_mesh(cfg: GameConfig) -> ArrayMesh:
 	solid.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var glow: SurfaceTool = SurfaceTool.new()
 	glow.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var glow2: SurfaceTool = SurfaceTool.new()
+	glow2.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var mid_z: float = -length * 0.5
 	MeshLib.add_box(solid, Vector3(0.0, -0.1, mid_z), Vector3(half_bed * 2.0, 0.2, length), GROUND_COLOR)
 	MeshLib.add_box(solid, Vector3(0.0, -0.3, mid_z), Vector3(90.0, 0.2, length), SIDE_COLOR)
 	for lane in range(cfg.lane_count):
 		var x: float = cfg.lane_x(lane)
 		for side: float in [-0.55, 0.55]:
-			MeshLib.add_box(solid, Vector3(x + side, 0.06, mid_z), Vector3(0.08, 0.12, length), RAIL_COLOR)
+			MeshLib.add_box(solid, Vector3(x + side, 0.05, mid_z), Vector3(0.1, 0.1, length), RAIL_COLOR)
+			MeshLib.add_box(glow, Vector3(x + side, 0.115, mid_z), Vector3(0.07, 0.03, length))
 		var ties: int = int(length / 1.5)
 		for i in range(ties):
-			MeshLib.add_box(solid, Vector3(x, 0.02, -(float(i) + 0.5) * 1.5), Vector3(1.5, 0.05, 0.32), TIE_COLOR)
+			MeshLib.add_box(solid, Vector3(x, 0.02, -(float(i) + 0.5) * 1.5), Vector3(1.55, 0.05, 0.34), TIE_COLOR)
 	for side: float in [-1.0, 1.0]:
-		MeshLib.add_box(glow, Vector3(side * half_bed, 0.04, mid_z), Vector3(0.12, 0.08, length))
+		MeshLib.add_box(glow2, Vector3(side * half_bed, 0.05, mid_z), Vector3(0.16, 0.1, length))
 		for i in range(int(length / 10.0)):
 			var z: float = -(float(i) + 0.5) * 10.0
 			MeshLib.add_box(solid, Vector3(side * (half_bed + 0.9), 2.6, z), Vector3(0.14, 5.2, 0.14), POLE_COLOR)
@@ -54,12 +63,14 @@ static func track_mesh(cfg: GameConfig) -> ArrayMesh:
 	for boundary in range(1, cfg.lane_count):
 		var bx: float = cfg.lane_x(boundary) - cfg.lane_width * 0.5
 		for i in range(int(length / 3.0)):
-			MeshLib.add_box(glow, Vector3(bx, 0.015, -(float(i) + 0.5) * 3.0), Vector3(0.07, 0.03, 1.2))
+			MeshLib.add_box(glow2, Vector3(bx, 0.015, -(float(i) + 0.5) * 3.0), Vector3(0.08, 0.03, 1.3))
 	_track_mesh = ArrayMesh.new()
 	solid.commit(_track_mesh)
 	glow.commit(_track_mesh)
+	glow2.commit(_track_mesh)
 	_track_mesh.surface_set_material(0, Mats.lit(Color.WHITE))
-	_track_mesh.surface_set_material(1, Mats.lit(Color.BLACK, Color.WHITE, 1.5, 1.0))
+	_track_mesh.surface_set_material(1, Mats.lit(Color.BLACK, Color.WHITE, RAIL_GLOW_ENERGY, 1.0))
+	_track_mesh.surface_set_material(2, Mats.lit(Color.BLACK, Color.WHITE, STRIP_GLOW_ENERGY, 2.0))
 	return _track_mesh
 
 

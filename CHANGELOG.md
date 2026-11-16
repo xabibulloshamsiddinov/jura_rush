@@ -11,8 +11,20 @@
   chevron lane marker in front of barriers; fog starts at 85 m; contact shadow follows the track.
 - Night sky dome (stars, moon, skyline), flickering windows, rail sparks, tunnels and bridges,
   colour theme every 500 m.
+- Key-art pass (matches the new icon): neon rail tops in the biome accent, magenta lane dashes
+  and edges on a violet bed; smaller two-colour building windows; stronger, wider glow.
+- Trains: cabin window rows, neon side stripe, magenta roof edges and destination sign, dark
+  windscreen. Gaps now cover the rails, so the rails visibly end at the pit.
+- Runner rebuilt: block torso, bending elbows and knees, hands, hair, eyes, sneakers with white
+  soles; new cap. Volt (starter) wears the key-art look (orange top, cap with glowing brim);
+  Ember is now red with an orange visor.
+- Player trail is a faint flat streak on the ground (the upright ribbon read as a laser line);
+  particles use a soft round sprite (dust no longer shows as grey squares).
 
 ### UI
+- Logo drawn in code (`scripts/ui/game_logo.gd`): stacked slanted NEON / RAILS with a neon halo
+  and swoosh, on the main menu and loading screen. One font size, two outline sizes (the first
+  version cost about 35 MB of glyph atlases).
 - Fonts: Orbitron (headings), Rajdhani (body), Exo 2 Cyrillic fallback (SIL OFL, assets/fonts).
 - One shared Godot Theme (UITheme.godot_theme) with neon button variations; vector coin / key icons.
 - Main menu: runner framed above the buttons, pulsing PLAY, merged Shop, labelled keys,

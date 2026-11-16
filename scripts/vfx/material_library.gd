@@ -30,6 +30,20 @@ static func lit(color: Color, glow_color: Color = Color.BLACK, energy: float = 0
 	return mat
 
 
+## Lit material whose emission is split into panes along the mesh length (train windows).
+static func lit_segmented(color: Color, glow_color: Color, energy: float, segment_len: float,
+		segment_fill: float, accent_mix: float = 0.0) -> ShaderMaterial:
+	var key: String = "seg|%s|%s|%.2f|%.2f|%.2f|%.1f" % [color.to_html(), glow_color.to_html(), energy,
+			segment_len, segment_fill, accent_mix]
+	if _cache.has(key):
+		return _cache[key] as ShaderMaterial
+	var mat: ShaderMaterial = lit(color, glow_color, energy, accent_mix).duplicate() as ShaderMaterial
+	mat.set_shader_parameter(&"segment_len", segment_len)
+	mat.set_shader_parameter(&"segment_fill", segment_fill)
+	_cache[key] = mat
+	return mat
+
+
 ## Runner material: the lit material plus a rim light so the silhouette reads against coins,
 ## neon and dark track (VisualTuning.PLAYER_RIM_*).
 static func player_lit(color: Color, glow_color: Color = Color.BLACK, energy: float = 0.0) -> ShaderMaterial:

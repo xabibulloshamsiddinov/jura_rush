@@ -8,6 +8,7 @@ extends Resource
 @export var body_color: Color = Color(0.1, 0.75, 0.95)
 @export var limb_color: Color = Color(0.12, 0.13, 0.25)
 @export var head_color: Color = Color(0.95, 0.8, 0.65)
+@export var hair_color: Color = Color(0.13, 0.08, 0.06)
 @export var glow_color: Color = Color(1.0, 0.25, 0.8)
 ## none, cap, visor, antenna, backpack, scarf.
 @export var accessory: StringName = &"none"

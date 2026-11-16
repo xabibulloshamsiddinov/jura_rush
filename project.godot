@@ -23,7 +23,7 @@ config/features=PackedStringArray("4.6", "Mobile")
 run/max_fps=60
 boot_splash/bg_color=Color(0.027, 0.031, 0.075, 1)
 boot_splash/show_image=false
-config/icon="res://assets/textures/icon.png"
+config/icon="uid://c4u0fp4hgbdy1"
 
 [autoload]
 
@@ -54,9 +54,17 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_ai/plugin.cfg")
+
 [input_devices]
 
 pointing/emulate_touch_from_mouse=true
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://localization/strings.en.translation", "res://localization/strings.uz.translation", "res://localization/strings.ru.translation")
 
 [layer_names]
 
@@ -106,8 +114,3 @@ biome_accent2={
 "type": "color",
 "value": Color(1, 0.2, 0.8, 1)
 }
-
-[internationalization]
-
-locale/translations=PackedStringArray("res://localization/strings.en.translation", "res://localization/strings.uz.translation", "res://localization/strings.ru.translation")
-locale/fallback="en"

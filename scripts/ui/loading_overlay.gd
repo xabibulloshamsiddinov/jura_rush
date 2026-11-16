@@ -3,7 +3,7 @@
 extends UIScreen
 
 var _background: ColorRect = null
-var _title: Label = null
+var _title: GameLogo = null
 var _subtitle: Label = null
 var _bar: ProgressBar = null
 
@@ -18,7 +18,8 @@ func build() -> void:
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	UIKit.fill(column)
 	add_child(column)
-	_title = UIKit.label(GameConfig.GAME_TITLE, ui.size_title, ui.cyan)
+	_title = GameLogo.new(GameConfig.GAME_TITLE)
+	_title.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(_title)
 	_subtitle = UIKit.label(tr_key(&"loading.loading"), ui.size_body, ui.text_dim)
 	column.add_child(_subtitle)
