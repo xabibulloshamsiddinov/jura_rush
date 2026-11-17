@@ -1,4 +1,4 @@
-## "coin icon + amount" pill. `text` sets the number part, so callers that used a Label keep
+## "egg icon + amount" counter. `text` sets the number part, so callers that used a Label keep
 ## working (count-up tweens animate `text` too).
 class_name CoinCounter
 extends HBoxContainer
@@ -13,17 +13,18 @@ var text: String:
 		label.text = value
 
 
-func _init(font_size: int = 36, color: Color = Color(1.0, 0.86, 0.1),
+func _init(font_size: int = 36, color: Color = Color(1.0, 0.64, 0.12),
 		align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> void:
-	add_theme_constant_override(&"separation", int(font_size * 0.25))
+	add_theme_constant_override(&"separation", int(font_size * 0.2))
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if align == HORIZONTAL_ALIGNMENT_RIGHT:
 		alignment = BoxContainer.ALIGNMENT_END
 	elif align == HORIZONTAL_ALIGNMENT_CENTER:
 		alignment = BoxContainer.ALIGNMENT_CENTER
-	icon = CoinIcon.new(float(UIKit.scaled(font_size)) * 0.95)
+	icon = CoinIcon.new(float(UIKit.scaled(font_size)) * 1.05)
 	add_child(icon)
 	label = UIKit.label("0", font_size, color, HORIZONTAL_ALIGNMENT_LEFT)
+	label.add_theme_font_override(&"font", UIKit.heading_font())
 	add_child(label)
 
 

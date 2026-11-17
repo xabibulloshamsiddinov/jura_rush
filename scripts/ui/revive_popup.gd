@@ -16,14 +16,14 @@ func build() -> void:
 	var center: CenterContainer = CenterContainer.new()
 	UIKit.fill(center)
 	add_child(center)
-	_panel = UIKit.panel(false, ui.magenta)
+	_panel = UIKit.panel(false, ui.accent)
 	_panel.custom_minimum_size = Vector2(760.0, 0.0)
 	center.add_child(_panel)
 	var column: VBoxContainer = UIKit.vbox(24)
 	_panel.add_child(UIKit.margin(column, 40, 40))
-	column.add_child(UIKit.label(tr_key(&"revive.title"), ui.size_h1, ui.magenta))
+	column.add_child(UIKit.label(tr_key(&"revive.title"), ui.size_h1, ui.accent))
 	_timer = RadialTimer.new(200.0)
-	_timer.color = ui.yellow
+	_timer.color = ui.accent
 	_timer.warn_below = 1.5
 	_timer.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_timer.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -32,7 +32,7 @@ func build() -> void:
 	var wallet_row: HBoxContainer = UIKit.hbox(12)
 	wallet_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	wallet_row.add_child(KeyIcon.new(float(UIKit.scaled(ui.size_body))))
-	_wallet = UIKit.label("", ui.size_body, ui.cyan)
+	_wallet = UIKit.label("", ui.size_body, ui.accent)
 	wallet_row.add_child(_wallet)
 	column.add_child(wallet_row)
 	_keys_button = UIKit.button("", &"primary")

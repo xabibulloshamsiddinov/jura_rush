@@ -7,6 +7,6 @@ script = ExtResource("1")
 id = &"cyan"
 name_key = &"trail.cyan"
 price = 0
-color = Color(0, 0.9, 1, 1)
+color = Color(0.86, 0.72, 0.5, 1)
 width = 0.45
 length = 10

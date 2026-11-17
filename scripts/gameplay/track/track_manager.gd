@@ -19,8 +19,10 @@ var generator: ChunkGenerator = null
 var library: PatternLibrary = null
 ## Optional: supplies pattern difficulty and arrival-speed predictions.
 var director: DifficultyDirector = null
-## Decor set used for chunks recycled from now on (set by BiomeDirector).
+## Decor set (biome style index) used for chunks recycled from now on (set by BiomeDirector).
 var decor_set: int = 0
+## Dev flag (--feature=tunnel|bridge): makes that feature come round again and again.
+static var dev_feature: TrackVisuals.Feature = TrackVisuals.Feature.NONE
 ## Total chunks recycled since the last reset.
 var recycled_count: int = 0
 ## Largest gap between neighbouring chunks ever measured (soak test).
@@ -33,6 +35,13 @@ var _chunk_count: int = 0
 ## Tunnel / bridge run in progress: kind and chunks still to place.
 var _feature_kind: TrackVisuals.Feature = TrackVisuals.Feature.NONE
 var _feature_left: int = 0
+## The chunk being filled starts / ends a feature run (caps: cave mouth, river banks).
+var _feature_first: bool = false
+var _feature_last: bool = false
+## Plain chunks still to place before the dev feature may start again.
+var _dev_gap: int = 0
+## Biome style of the last chunk placed (the next one blends its ground from it).
+var _last_style: int = -1
 var _last_emitted_speed: float = -1.0
 var _noise: FastNoiseLite = FastNoiseLite.new()
 var _bend_scale: float = 1.0
@@ -65,6 +74,9 @@ func reset(run_seed: int, empty_only: bool) -> void:
 	world_speed = 0.0
 	speed_multiplier = 1.0
 	_apply_fog()
+	_feature_left = 0
+	_dev_gap = 0
+	_last_style = decor_set
 	for i in range(_chunk_count):
 		var chunk: TrackChunk = Factories.Chunks.create()
 		add_child(chunk)
@@ -172,47 +184,72 @@ func _fill(chunk: TrackChunk) -> void:
 		difficulty = director.pattern_difficulty(eta)
 		arrival_speed = director.predict_speed(eta)
 	var plan: SpawnStrategy.Plan = generator.next_plan(difficulty, arrival_speed)
+	chunk.prev_style = _last_style
 	_builder.begin(chunk, plan, arrival_speed).add_obstacles().add_coins().add_pickups() \
 			.add_decor(decor_set, generator.rng.range_i(0, 1 << 20), SettingsManager.decor_density()) \
 			.build()
-	chunk.set_feature(_next_feature())
+	_last_style = decor_set
+	var kind: TrackVisuals.Feature = _next_feature()
+	chunk.set_feature(kind, _feature_first, _feature_last)
 
 
 func _apply_fog() -> void:
 	var fog_end: float = _cfg.effective_fog_end(_chunk_count)
 	RenderingServer.global_shader_parameter_set(&"fog_end", fog_end)
 	# VisualTuning.FOG_START pushes the fog out so obstacles read earlier; never past half the
-	# fog range, or the far fade would get too abrupt.
-	var fog_start: float = maxf(_cfg.fog_start, VisualTuning.FOG_START)
+	# fog range, or the far fade would get too abrupt. Misty biomes pull it in
+	# (BiomeDirector.fog_start_scale, from BiomeDef.fog_density_scale).
+	var fog_start: float = maxf(_cfg.fog_start, VisualTuning.FOG_START) * BiomeDirector.fog_start_scale
 	RenderingServer.global_shader_parameter_set(&"fog_start", minf(fog_start, fog_end * 0.5))
 	RenderingServer.global_shader_parameter_set(&"bend_y", _cfg.bend_strength_y)
+	# The shadow-pass bend (world_common CURVE_WORLD) pivots on the run camera's z.
+	RenderingServer.global_shader_parameter_set(&"run_cam_z", _cfg.cam_back)
 
 
 ## Hides obstacles the runner has fully passed. They would otherwise stay on screen between the
 ## camera (cam_back metres behind) and the player until their chunk is recycled. Only the two
 ## nearest chunks can hold such obstacles. on_acquire() makes them visible again on reuse.
+## The test uses the far end of the VISUAL (box far edge minus ObstacleBase.far_overhang), so
+## parts drawn beyond the collision box (sauropod necks and tails) never vanish in view.
 func _hide_passed_obstacles() -> void:
 	for i in range(mini(2, chunks.size())):
 		var chunk: TrackChunk = chunks[i]
 		for o in chunk.obstacles:
-			if o.visible and chunk.position.z + o.position.z - o.length * 0.5 > VisualTuning.HIDE_PASSED_OBSTACLES_Z:
+			if o.visible and chunk.position.z + o.position.z - o.length * 0.5 - o.far_overhang \
+					> VisualTuning.HIDE_PASSED_OBSTACLES_Z:
 				o.visible = false
 
 
-## Occasional tunnel or bridge runs of a few chunks (VisualTuning.TRACK_FEATURE_*). Uses its own
-## RNG so the obstacle generator (and its tests / daily seed) is not affected.
+## Occasional cave or bridge runs of a few chunks (VisualTuning.TRACK_FEATURE_*). Uses its own
+## RNG so the obstacle generator (and its tests / daily seed) is not affected. Also records
+## whether the chunk starts / ends its run (_feature_first / _feature_last, for the caps).
 var _feature_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
 func _next_feature() -> TrackVisuals.Feature:
+	_feature_first = false
+	_feature_last = false
 	if not VisualTuning.FEATURE_TUNNELS_BRIDGES:
 		return TrackVisuals.Feature.NONE
 	if _feature_left > 0:
 		_feature_left -= 1
+		_feature_last = _feature_left == 0
+		return _feature_kind
+	if dev_feature != TrackVisuals.Feature.NONE:
+		# Dev flag: three feature chunks, two plain ones, repeat (first runway chunks stay plain).
+		if _dev_gap > 0 or chunks.size() < 4:
+			_dev_gap = maxi(_dev_gap - 1, 0)
+			return TrackVisuals.Feature.NONE
+		_feature_kind = dev_feature
+		_feature_left = 2
+		_dev_gap = 2
+		_feature_first = true
 		return _feature_kind
 	if distance_travelled > 60.0 and _feature_rng.randf() < VisualTuning.TRACK_FEATURE_CHANCE:
 		_feature_kind = TrackVisuals.Feature.TUNNEL if _feature_rng.randf() < 0.5 else TrackVisuals.Feature.BRIDGE
 		_feature_left = _feature_rng.randi_range(VisualTuning.TRACK_FEATURE_MIN_CHUNKS,
 				VisualTuning.TRACK_FEATURE_MAX_CHUNKS) - 1
+		_feature_first = true
+		_feature_last = _feature_left == 0
 		return _feature_kind
 	return TrackVisuals.Feature.NONE

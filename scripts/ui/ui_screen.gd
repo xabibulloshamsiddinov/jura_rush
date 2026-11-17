@@ -63,3 +63,23 @@ func handle_back() -> bool:
 ## Shortcut for translations.
 func tr_key(key: StringName) -> String:
 	return Tr.t(key)
+
+
+## Adds `node` pinned to an anchor point (0..1 of the screen) plus a pixel offset. The node keeps
+## its minimum size and grows from the point in the given directions (BEGIN = left / up,
+## END = right / down, BOTH = centred). Containers placed this way ignore the mouse.
+func place(node: Control, anchor: Vector2, offset: Vector2, grow_h: Control.GrowDirection,
+		grow_v: Control.GrowDirection) -> void:
+	node.anchor_left = anchor.x
+	node.anchor_right = anchor.x
+	node.anchor_top = anchor.y
+	node.anchor_bottom = anchor.y
+	node.offset_left = offset.x
+	node.offset_right = offset.x
+	node.offset_top = offset.y
+	node.offset_bottom = offset.y
+	node.grow_horizontal = grow_h
+	node.grow_vertical = grow_v
+	if node is Container:
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(node)

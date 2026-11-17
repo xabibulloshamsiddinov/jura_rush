@@ -5,7 +5,7 @@ class_name TrackChunk
 extends Node3D
 
 var obstacles: Array[ObstacleBase] = []
-## Subset of obstacles that need tick() (moving trains, blinking lights).
+## Subset of obstacles that need tick() (moving obstacles, blinking lights).
 var tickers: Array[ObstacleBase] = []
 ## Subset of obstacles that change the ground height (roofs, ramps, gaps).
 var ground_shapers: Array[ObstacleBase] = []
@@ -14,35 +14,58 @@ var coins: CoinField = null
 var grid: PackedInt32Array = PackedInt32Array()
 var pattern_id: StringName = &"empty"
 var length: float = 30.0
+## Biome style of the chunk before this one (set by TrackManager before the chunk is built): the
+## ground blends from it at the near edge into this chunk's style at the far edge.
+var prev_style: int = -1
+## Biome style (BiomeDef.decor_set) the chunk was last decorated with.
+var style: int = 0
 
-var _decor: MultiMeshInstance3D = null
+## The stone-path track mesh (hidden on bridges, which bring their own deck).
+var _track: MeshInstance3D = null
+## Decor MultiMeshes, one per FloraLibrary slot.
+var _decor: Array[MultiMeshInstance3D] = []
 ## Tunnel / bridge geometry (shared meshes), hidden on normal chunks.
 var _feature: MeshInstance3D = null
+## Feature caps: cave mouth / near river bank on the first chunk of a run, mountain back / far
+## bank on the last one.
+var _cap_start: MeshInstance3D = null
+var _cap_end: MeshInstance3D = null
 var feature: TrackVisuals.Feature = TrackVisuals.Feature.NONE
 var _cfg: GameConfig = GameConfig.current()
 
 
 func _init() -> void:
 	length = _cfg.chunk_length
-	var track: MeshInstance3D = MeshInstance3D.new()
-	track.mesh = TrackVisuals.track_mesh(_cfg)
-	track.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	track.extra_cull_margin = 60.0
-	add_child(track)
-	_decor = MultiMeshInstance3D.new()
-	_decor.multimesh = TrackVisuals.new_decor_multimesh()
-	_decor.material_override = Mats.building()
-	_decor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_decor.custom_aabb = AABB(Vector3(-40.0, -40.0, -length - 5.0), Vector3(80.0, 100.0, length + 10.0))
-	_decor.extra_cull_margin = 60.0
-	add_child(_decor)
+	_track = MeshInstance3D.new()
+	_track.mesh = TrackVisuals.track_mesh(_cfg)
+	_track.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_track.extra_cull_margin = 60.0
+	add_child(_track)
+	for slot in range(FloraLibrary.SLOT_COUNT):
+		var decor: MultiMeshInstance3D = MultiMeshInstance3D.new()
+		decor.multimesh = TrackVisuals.new_decor_slot(slot)
+		decor.material_override = Mats.flora()
+		decor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if FloraLibrary.SLOT_CASTS_SHADOW[slot] \
+				else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		decor.custom_aabb = AABB(Vector3(-75.0, -12.0, -length - 12.0), Vector3(150.0, 60.0, length + 24.0))
+		decor.extra_cull_margin = 60.0
+		add_child(decor)
+		_decor.append(decor)
 	coins = CoinField.new()
 	add_child(coins)
 	_feature = MeshInstance3D.new()
-	_feature.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Double-sided: the cave is a closed tube for the sun; its inner roof must block light too.
+	_feature.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_DOUBLE_SIDED
 	_feature.extra_cull_margin = 60.0
 	_feature.visible = false
 	add_child(_feature)
+	_cap_start = MeshInstance3D.new()
+	_cap_end = MeshInstance3D.new()
+	for cap: MeshInstance3D in [_cap_start, _cap_end]:
+		cap.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		cap.extra_cull_margin = 60.0
+		cap.visible = false
+		add_child(cap)
 
 
 ## Pool hook.
@@ -97,7 +120,7 @@ func clear_obstacles_between(z_from: float, z_to: float) -> void:
 			PoolManager.release(o.def.id, o)
 
 
-## Ground height for a lane at a local z. 0 = rails, >0 = roof or ramp, very negative = pit.
+## Ground height for a lane at a local z. 0 = path, >0 = roof or ramp, very negative = pit.
 func ground_height(lane: int, local_z: float) -> float:
 	var height: float = 0.0
 	for o in ground_shapers:
@@ -119,19 +142,42 @@ func tick(delta: float, world_speed: float) -> void:
 			o.tick(delta, world_speed, position.z)
 
 
-## Regenerates the side buildings (called only when the chunk is recycled, never while visible).
+## Regenerates the side decor and the ground style (called only when the chunk is recycled, never
+## while visible). decor_set = the biome style index (BiomeDef.decor_set).
 func set_decor(decor_set: int, decor_seed: int, per_side: int) -> void:
-	TrackVisuals.fill_decor(_decor.multimesh, decor_set, decor_seed, per_side, _cfg)
+	style = clampi(decor_set, 0, BiomeStyle.COUNT - 1)
+	var from: int = style if prev_style < 0 else clampi(prev_style, 0, BiomeStyle.COUNT - 1)
+	_track.set_instance_shader_parameter(&"style_a", float(from))
+	_track.set_instance_shader_parameter(&"style_b", float(style))
+	for slot in range(_decor.size()):
+		TrackVisuals.fill_decor_slot(_decor[slot].multimesh, slot, style, decor_seed, per_side, _cfg)
 
 
-## Turns this chunk into a tunnel or bridge section (or back to open track). Called on recycle.
-func set_feature(kind: TrackVisuals.Feature) -> void:
+## Turns this chunk into a cave or bridge section (or back to open track). Called on recycle.
+## first / last: the chunk starts / ends a run of that feature (caps: cave mouth, river banks).
+func set_feature(kind: TrackVisuals.Feature, first: bool = false, last: bool = false) -> void:
 	feature = kind
+	_cap_start.visible = false
+	_cap_end.visible = false
 	match kind:
 		TrackVisuals.Feature.TUNNEL:
 			_feature.mesh = TrackVisuals.tunnel_mesh(_cfg)
+			if first:
+				_cap_start.mesh = TrackFeatures.cave_mouth_mesh(_cfg)
+				_cap_start.visible = true
+			if last:
+				_cap_end.mesh = TrackFeatures.cave_end_mesh(_cfg)
+				_cap_end.visible = true
 		TrackVisuals.Feature.BRIDGE:
 			_feature.mesh = TrackVisuals.bridge_mesh(_cfg)
+			if first:
+				_cap_start.mesh = TrackFeatures.bridge_near_mesh(_cfg)
+				_cap_start.visible = true
+			if last:
+				_cap_end.mesh = TrackFeatures.bridge_far_mesh(_cfg)
+				_cap_end.visible = true
 	_feature.visible = kind != TrackVisuals.Feature.NONE
-	# Tunnel walls cover the buildings; bridges open the view to the sky and skyline.
-	_decor.visible = kind == TrackVisuals.Feature.NONE
+	# Caves cover the side decor; bridges open the view over the river (and bring their own deck).
+	for decor in _decor:
+		decor.visible = kind == TrackVisuals.Feature.NONE
+	_track.visible = kind != TrackVisuals.Feature.BRIDGE

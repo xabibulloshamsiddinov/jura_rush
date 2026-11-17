@@ -1,9 +1,19 @@
 ## The 3D world and the conductor of one run. Builds every gameplay system as a child node,
-## steps them in a fixed order each physics tick, and reacts to flow-state changes. It never
-## talks to UI: everything leaves through GameEvents.
+## steps them in a fixed order, and reacts to flow-state changes. It never talks to UI:
+## everything leaves through GameEvents.
+##
+## Frame pacing: everything that moves on screen (treadmill, runner, chaser, pickups, camera)
+## advances once per RENDERED frame in _process, split into equal sub-steps of at most 1/60 s
+## (the size the gameplay was tuned for). Nothing visible moves on the physics tick, so there is
+## no physics-vs-render beat (the old 60 Hz physics loop showed every tick on 60 Hz panels but
+## stuttered whenever a frame took 0 or 2 ticks, and always on 90 / 120 Hz displays).
 ##
 ## Step order while running: director -> track -> player -> collisions -> pickups -> score ->
-## biomes -> chaser -> camera.
+## biomes -> chaser; then the camera once per frame. The chaser is stepped here in every flow state
+## (it has no clock of its own). Paused: the tree is paused, nothing steps. Hit-stop / crash slow
+## motion: Engine.time_scale shrinks the frame delta, so every system slows together. Only
+## shader-TIME idle motion (creature neck / tail sway, character hair flutter, foliage wind) keeps
+## running through a pause, by design.
 class_name GameWorld
 extends Node3D
 
@@ -12,6 +22,8 @@ const CHASER_SCENE: PackedScene = preload("res://scenes/game/chaser.tscn")
 const CAMERA_SCENE: PackedScene = preload("res://scenes/game/camera_rig.tscn")
 const HEADSTART_SECONDS: float = 5.0
 const BOOSTER_BONUS: int = 5
+## Largest simulation sub-step (seconds). A 60 fps frame is one step; slower frames are split.
+const MAX_STEP: float = 1.0 / 60.0
 
 var track: TrackManager = null
 var player: Player = null
@@ -81,20 +93,32 @@ func _ready() -> void:
 	GameEvents.item_purchased.connect(func(_id: StringName) -> void: player.apply_loadout())
 
 
-func _physics_process(delta: float) -> void:
+func _process(delta: float) -> void:
+	# Equal sub-steps no longer than MAX_STEP (a little slack so 59-61 fps stays one step).
+	var steps: int = maxi(1, ceili(delta / MAX_STEP - 0.2))
+	var h: float = delta / float(steps)
+	for i in range(steps):
+		_step(h)
+	camera_rig.tick(delta)
+
+
+func _step(delta: float) -> void:
 	match _state:
 		&"running":
 			_step_run(delta)
-		&"menu", &"boot":
+		&"menu", &"boot", &"loading":
+			# The caveman stands in front of the camera; the world (nearly) stands still and the
+			# T-Rex idles behind him (on PLAY: roars and stalks off).
 			track.target_speed = _cfg.menu_scroll_speed
 			track.advance(delta)
-			player.idle_tick(delta, true)
-		&"countdown", &"loading":
-			player.idle_tick(delta, false)
+			player.showcase_tick(delta, PlayerVisual.Pose.IDLE)
+			chaser.tick(delta)
+		&"countdown":
+			player.showcase_tick(delta, PlayerVisual.Pose.READY)
+			chaser.tick(delta)
 		&"revive", &"game_over":
 			player.tick(delta)
 			chaser.tick(delta)
-	camera_rig.tick(delta)
 
 
 func _step_run(delta: float) -> void:
@@ -120,11 +144,16 @@ func _on_state_changed(from: StringName, to: StringName) -> void:
 		&"loading":
 			_prepare_run()
 		&"countdown":
-			camera_rig.set_mode(CameraRig.Mode.RUN, 1.0)
+			# Swing round behind the runner while he turns to face the track and crouches.
+			camera_rig.set_mode(CameraRig.Mode.RUN, CameraRig.START_BLEND if from == &"loading" else 1.0)
+			player.visual.set_facing(0.0)
+			player.visual.idle_look_yaw = 0.0
 			if from == &"revive":
 				track.clear_obstacles_between(-60.0, 15.0)
 				player.revive()
 		&"running":
+			# GO: out of the ready crouch into the run cycle.
+			player.sync_pose()
 			if from == &"countdown" and score.run_time <= 0.0:
 				_apply_consumables()
 		&"revive", &"game_over":
@@ -138,6 +167,9 @@ func _show_menu_world() -> void:
 	biomes.reset()
 	player.reset()
 	player.apply_loadout()
+	# Turned a little toward the camera, glancing at it now and then.
+	player.visual.set_facing(CameraRig.MENU_FACING)
+	player.visual.idle_look_yaw = CameraRig.MENU_HEAD_YAW
 	chaser.hide_now()
 	sky_coins.clear()
 	camera_rig.set_mode(CameraRig.Mode.MENU, 1.2)

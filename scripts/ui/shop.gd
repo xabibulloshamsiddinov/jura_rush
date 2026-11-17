@@ -4,8 +4,8 @@
 ## confirmation first. Purchases go through PurchaseCommand (validation + rollback on a failed
 ## save) and every change is saved immediately.
 ##
-## Button states: equipped = green badge with a check (not pressable); owned = cyan EQUIP;
-## affordable = yellow coin price, gently pulsing; not affordable = dimmed with a red price
+## Button states: equipped = green badge with a check (not pressable); owned = green EQUIP;
+## affordable = amber egg price, gently pulsing; not affordable = dimmed with a red price
 ## (tapping it explains why).
 extends UIScreen
 
@@ -34,11 +34,7 @@ var _selected: Dictionary = {}   # tab index -> selected id
 func build() -> void:
 	var ui: UITheme = UITheme.current()
 	# Opaque backdrop: the shop owns the screen (the preview has its own 3D view).
-	var back_fill: ColorRect = ColorRect.new()
-	back_fill.color = Color(ui.background, 0.97)
-	back_fill.mouse_filter = Control.MOUSE_FILTER_STOP
-	UIKit.fill(back_fill)
-	add_child(back_fill)
+	add_child(UIKit.backdrop())
 	var column: VBoxContainer = UIKit.vbox(16)
 	var wrap: MarginContainer = UIKit.margin(column, 36, 50)
 	UIKit.fill(wrap)
@@ -46,19 +42,18 @@ func build() -> void:
 
 	var top: HBoxContainer = UIKit.hbox(20)
 	column.add_child(top)
-	var back: UIButton = UIKit.button("<", &"ghost", 120.0)
-	back.feedback = &"back"
+	var back: UIButton = UIKit.back_button()
 	back.pressed.connect(func() -> void: SceneRouter.back())
 	top.add_child(back)
-	var title: Label = UIKit.label(tr_key(&"shop.title"), ui.size_h1, ui.magenta)
+	var title: Label = UIKit.label(tr_key(&"shop.title"), ui.size_h1, ui.accent)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
-	_coins = CoinCounter.new(ui.size_h2, ui.yellow, HORIZONTAL_ALIGNMENT_RIGHT)
+	_coins = CoinCounter.new(ui.size_h2, ui.accent, HORIZONTAL_ALIGNMENT_RIGHT)
 	_coins.custom_minimum_size = Vector2(220.0, 0.0)
 	top.add_child(_coins)
 
 	# Preview area (~35 % of the height).
-	var stage: PanelContainer = UIKit.panel(false, Color(ui.cyan, 0.35))
+	var stage: PanelContainer = UIKit.panel(false, Color(ui.accent, 0.5))
 	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	stage.size_flags_stretch_ratio = PREVIEW_RATIO
 	column.add_child(stage)
@@ -98,8 +93,7 @@ func build() -> void:
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	_toast = UIKit.label("", ui.size_h2, ui.success)
-	_toast.add_theme_constant_override(&"outline_size", 12)
-	_toast.add_theme_color_override(&"font_outline_color", Color(0, 0, 0, 0.9))
+	UIKit.strong_outline(_toast)
 	_toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_toast.position.y = 420.0
 	_toast.modulate.a = 0.0
@@ -163,8 +157,10 @@ func _refresh() -> void:
 # --- rows ---------------------------------------------------------------------------------------
 
 func _runner_row(def: CharacterDef) -> void:
-	var stats: String = Tr.f(&"shop.char.stats", {"a": tr_key(StringName("shop.acc." + String(def.accessory))),
-			"b": tr_key(_build_key(def.bulk))})
+	# "<accessory> · <build>"; a skin without an accessory (Blaze) just shows its build.
+	var stats: String = tr_key(_build_key(def.bulk))
+	if def.accessory != &"" and def.accessory != &"none":
+		stats = Tr.f(&"shop.char.stats", {"a": tr_key(StringName("shop.acc." + String(def.accessory))), "b": stats})
 	var action: Control = _item_action(&"character", def.id, tr_key(def.name_key), def.price)
 	_row(def.id, ItemThumb.runner(def), tr_key(def.name_key), stats, def.glow_color, action)
 
@@ -181,7 +177,7 @@ func _upgrade_row(def: PowerupDef) -> void:
 	var cost: int = def.cost_for_next(level)
 	var action: Control = _badge(tr_key(&"shop.max"), UITheme.current().text_dim, false) if cost < 0 \
 			else _price_action(&"upgrade", def.id, tr_key(def.name_key), cost)
-	_row(def.id, ItemThumb.badge(def.color, def.icon), tr_key(def.name_key), subtitle, def.color, action)
+	_row(def.id, ItemThumb.badge(def.color, def.icon, UIIcon.for_powerup(def.id)), tr_key(def.name_key), subtitle, def.color, action)
 
 
 func _item_row(entry: Dictionary) -> void:
@@ -189,8 +185,8 @@ func _item_row(entry: Dictionary) -> void:
 	var subtitle: String = "%s\n%s" % [tr_key(entry["desc_key"]),
 			Tr.f(&"shop.owned", {"n": SaveSystem.consumable_count(id)})]
 	var ui: UITheme = UITheme.current()
-	_row(id, ItemThumb.badge(ui.yellow, str(ITEM_BADGES.get(id, "+"))), tr_key(entry["name_key"]), subtitle,
-			ui.yellow, _price_action(&"consumable", id, tr_key(entry["name_key"]), int(entry["price"])))
+	_row(id, ItemThumb.badge(ui.accent, str(ITEM_BADGES.get(id, "+"))), tr_key(entry["name_key"]), subtitle,
+			ui.accent, _price_action(&"consumable", id, tr_key(entry["name_key"]), int(entry["price"])))
 
 
 ## Equipped badge / Equip button / price button for a runner or trail.
@@ -339,7 +335,7 @@ func _update_preview() -> void:
 		3:
 			for entry in ShopCatalog.CONSUMABLES:
 				if entry["id"] == id:
-					_preview.show_orb(UITheme.current().yellow)
+					_preview.show_orb(UITheme.current().accent)
 					_preview_name.text = tr_key(entry["name_key"])
 					_preview_info.text = tr_key(entry["desc_key"])
 
@@ -358,7 +354,7 @@ func _build_confirm() -> void:
 	var center: CenterContainer = CenterContainer.new()
 	UIKit.fill(center)
 	_confirm.add_child(center)
-	var panel: PanelContainer = UIKit.panel(true, ui.yellow)
+	var panel: PanelContainer = UIKit.panel(true, ui.accent)
 	panel.custom_minimum_size = Vector2(820.0, 0.0)
 	center.add_child(panel)
 	var box: VBoxContainer = UIKit.vbox(30)

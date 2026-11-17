@@ -3,9 +3,18 @@ class_name UITween
 extends RefCounted
 
 
+## Scales around the middle even before the first layout pass (size is 0 until then): the pivot
+## follows the control whenever it is resized.
+static func center_pivot(node: Control) -> void:
+	node.pivot_offset = node.size * 0.5
+	if not node.has_meta(&"pivot_hook"):
+		node.set_meta(&"pivot_hook", true)
+		node.resized.connect(func() -> void: node.pivot_offset = node.size * 0.5)
+
+
 ## Scale "pop" from small to full size with a little overshoot.
 static func pop(node: Control, delay: float = 0.0, from: float = 0.6) -> Tween:
-	node.pivot_offset = node.size * 0.5
+	center_pivot(node)
 	node.scale = Vector2(from, from)
 	node.modulate.a = 0.0
 	var tween: Tween = node.create_tween().set_parallel(true)
@@ -17,7 +26,7 @@ static func pop(node: Control, delay: float = 0.0, from: float = 0.6) -> Tween:
 
 ## Quick scale bump (counter changed).
 static func bump(node: Control, amount: float = 1.25) -> void:
-	node.pivot_offset = node.size * 0.5
+	center_pivot(node)
 	var tween: Tween = node.create_tween()
 	tween.tween_property(node, "scale", Vector2(amount, amount), 0.06)
 	tween.tween_property(node, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -51,9 +60,9 @@ static func count_up(label: Label, to: int, duration: float, prefix: String = ""
 	return tween
 
 
-## Endless gentle pulse (the PLAY button).
+## Endless gentle pulse (the PLAY button, "tap to play").
 static func pulse(node: Control, amount: float = 1.06, period: float = 0.9) -> Tween:
-	node.pivot_offset = node.size * 0.5
+	center_pivot(node)
 	var tween: Tween = node.create_tween().set_loops()
 	tween.tween_property(node, "scale", Vector2(amount, amount), period * 0.5) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

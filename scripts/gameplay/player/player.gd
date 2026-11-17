@@ -49,14 +49,23 @@ var sky_coins: SkyCoinTrail = null
 var _cfg: GameConfig = GameConfig.current()
 var _lane_from_x: float = 0.0
 var _lane_t: float = 1.0
-var _lane_duration: float = 0.12
+var _lane_duration: float = 0.16
+## Where on the lane curve the current move started (0, or past the speed ramp when chained).
+var _lane_u0: float = 0.0
+## Current sideways speed (m/s), keeps chained lane changes continuous.
+var _lane_vx: float = 0.0
+var _lane_hop: float = 0.0
 var _lean: float = 0.0
 var _invulnerable_left: float = 0.0
 var _buffered: Command = null
 var _capsule: CapsuleShape3D = null
 var _collider: CollisionShape3D = null
 var _shadow: MeshInstance3D = null
-var _sparks: CPUParticles3D = null
+## Dust kicked up by each foot (left, right); empty when VisualTuning.FEATURE_RAIL_SPARKS is off.
+var _dust: Array[CPUParticles3D] = []
+var _surface: float = 0.0
+
+static var _dust_material: StandardMaterial3D = null
 
 
 func _ready() -> void:
@@ -70,13 +79,14 @@ func _ready() -> void:
 	_set_collider_height(_cfg.player_height)
 	visual = PlayerVisual.new()
 	add_child(visual)
+	visual.prepare_ride()
+	visual.footstep.connect(_on_footstep)
 	health = PlayerComponents.Health.new()
 	shield = PlayerComponents.Shield.new()
 	magnet = PlayerComponents.Magnet.new()
 	powerups = PowerupController.new()
 	powerups.player = self
 	trail = TrailComponent.new()
-	trail.flat = true
 	for component: Node in [health, shield, magnet, powerups, trail]:
 		add_child(component)
 	_shadow = MeshLib.mi(MeshLib.plane(), Mats.blob_shadow(), Vector3.ZERO,
@@ -84,8 +94,10 @@ func _ready() -> void:
 	_shadow.top_level = true
 	add_child(_shadow)
 	if VisualTuning.FEATURE_RAIL_SPARKS:
-		_sparks = _make_sparks()
-		add_child(_sparks)
+		for i in range(2):
+			var dust: CPUParticles3D = _make_dust()
+			add_child(dust)
+			_dust.append(dust)
 	machine = StateMachine.new()
 	add_child(machine)
 	machine.add_state(RUN, RunState.new(), self)
@@ -119,10 +131,14 @@ func reset() -> void:
 	dashing = false
 	flying = false
 	_lane_t = 1.0
+	_lane_vx = 0.0
+	_lane_hop = 0.0
+	_lean = 0.0
 	_invulnerable_left = 0.0
 	_buffered = null
 	health.reset()
 	visual.visible = true
+	visual.reset_motion()
 	trail.clear_points()
 	_set_collider_height(_cfg.player_height)
 	position = Vector3(_cfg.lane_x(lane), 0.0, 0.0)
@@ -137,8 +153,11 @@ func revive() -> void:
 	on_ground = true
 	slam_pending = false
 	_lane_t = 1.0
+	_lane_vx = 0.0
+	_lane_hop = 0.0
 	health.reset()
 	position = Vector3(_cfg.lane_x(lane), 0.0, 0.0)
+	visual.reset_motion()
 	grant_invulnerability(2.5)
 	machine.transition_to(RUN, true)
 	GameEvents.player_revived.emit()
@@ -172,10 +191,26 @@ func tick(delta: float) -> void:
 
 ## Animation-only update for the menu showcase / countdown (no physics).
 func idle_tick(delta: float, jogging: bool) -> void:
-	visual.set_pose(PlayerVisual.Pose.RUN if jogging else PlayerVisual.Pose.IDLE)
-	visual.animate(delta, 9.0, 0.0)
+	showcase_tick(delta, PlayerVisual.Pose.RUN if jogging else PlayerVisual.Pose.IDLE)
+
+
+## Animation-only update with an explicit pose (menu IDLE, countdown READY).
+func showcase_tick(delta: float, pose: PlayerVisual.Pose) -> void:
+	visual.set_pose(pose)
+	visual.vertical_speed = 0.0
+	visual.lane_hop = 0.0
+	visual.run_speed = 0.0
+	visual.animate(delta, 11.5, 0.0)
+	_shadow.visible = true
 	_shadow.global_position = Vector3(position.x, VisualTuning.SHADOW_LIFT, 0.0)
+	_shadow.scale = Vector3(VisualTuning.SHADOW_SIZE.x, 1.0, VisualTuning.SHADOW_SIZE.y)
 	trail.tick(delta, 0.0, position, false)
+
+
+## Re-applies the current state's pose after the menu / countdown showcase poses.
+func sync_pose() -> void:
+	if machine.is_in(RUN):
+		visual.set_pose(PlayerVisual.Pose.RUN)
 
 
 ## Speed ramp fraction 0..1 at the current world speed.
@@ -215,9 +250,7 @@ func do_lane(direction: int) -> bool:
 		return true
 	previous_lane = lane
 	lane = target
-	_lane_from_x = position.x
-	_lane_t = 0.0
-	_lane_duration = _cfg.lane_time_at(speed_fraction())
+	_start_lane_move(_cfg.lane_time_at(speed_fraction()))
 	trail.burst()
 	GameEvents.lane_changed.emit(previous_lane, lane)
 	return true
@@ -304,15 +337,93 @@ func _retry_buffer() -> void:
 		_buffered = null
 
 
+## Lane-change curve, as a table of position / speed over normalised time u (built once).
+## Speed shape v(u) = (1 - exp(-u / ramp)) * (1 - u)^settle:
+##   * the speed ramps up over ~ramp * duration (8 ms at 0.16 s): no velocity jump, yet the first
+##     60 fps frame already covers ~29 % of the move, so the swipe answers at once;
+##   * the lane is cleared (62.5 % of the move, player + train half widths) after ~34 ms, the
+##     same as the old 0.12 s ease-out, so last-moment dodges stay fair;
+##   * it settles over a long (1 - u)^4 tail: zero speed, acceleration and jerk at the end.
+const LANE_TABLE_SIZE: int = 128
+static var _lane_pos: PackedFloat32Array = PackedFloat32Array()
+static var _lane_speed: PackedFloat32Array = PackedFloat32Array()
+static var _lane_shape: Vector2 = Vector2(-1.0, -1.0)
+
+
+static func _build_lane_table(ramp: float, settle: float) -> void:
+	var shape: Vector2 = Vector2(ramp, settle)
+	if shape == _lane_shape:
+		return
+	_lane_shape = shape
+	var fine: int = LANE_TABLE_SIZE * 16
+	var speeds: PackedFloat32Array = PackedFloat32Array()
+	for i in range(fine + 1):
+		var u: float = float(i) / float(fine)
+		speeds.append((1.0 - exp(-u / maxf(ramp, 0.001))) * pow(1.0 - u, settle))
+	var acc: PackedFloat32Array = PackedFloat32Array([0.0])
+	for i in range(1, fine + 1):
+		acc.append(acc[i - 1] + (speeds[i] + speeds[i - 1]) * 0.5 / float(fine))
+	var total: float = acc[fine]
+	_lane_pos.resize(LANE_TABLE_SIZE + 1)
+	_lane_speed.resize(LANE_TABLE_SIZE + 1)
+	for i in range(LANE_TABLE_SIZE + 1):
+		_lane_pos[i] = acc[i * 16] / total
+		_lane_speed[i] = speeds[i * 16] / total
+	_lane_pos[LANE_TABLE_SIZE] = 1.0
+
+
+## Fraction of the lane move done at normalised time u.
+static func lane_ease(u: float) -> float:
+	return _lane_sample(_lane_pos, u)
+
+
+## Speed at normalised time u, as a multiple of the average speed.
+static func lane_ease_speed(u: float) -> float:
+	return _lane_sample(_lane_speed, u)
+
+
+static func _lane_sample(table: PackedFloat32Array, u: float) -> float:
+	var x: float = clampf(u, 0.0, 1.0) * float(LANE_TABLE_SIZE)
+	var i: int = mini(int(x), LANE_TABLE_SIZE - 1)
+	return lerpf(table[i], table[i + 1], x - float(i))
+
+
+## Starts sliding from the current x toward the current lane. A move that continues in the
+## same direction skips the speed ramp (starts at the curve's peak), so a double swipe never
+## slows down between the two lanes.
+func _start_lane_move(duration: float) -> void:
+	_build_lane_table(_cfg.lane_ease_ramp, _cfg.lane_ease_settle)
+	var target_x: float = _cfg.lane_x(lane)
+	_lane_from_x = position.x
+	_lane_t = 0.0
+	_lane_u0 = 0.0
+	_lane_duration = maxf(duration, 0.01)
+	var dist: float = target_x - _lane_from_x
+	if absf(dist) > 0.001 and absf(_lane_vx) > 0.5 and signf(_lane_vx) == signf(dist):
+		_lane_u0 = clampf(_cfg.lane_ease_ramp * 2.0, 0.0, 0.3)
+		_lane_duration *= 1.0 - _lane_u0
+
+
 func _update_lane(delta: float) -> void:
 	var target_x: float = _cfg.lane_x(lane)
 	if _lane_t < 1.0:
-		_lane_t = minf(_lane_t + delta / maxf(_lane_duration, 0.01), 1.0)
-		position.x = lerpf(_lane_from_x, target_x, MathUtils.ease_out_cubic(_lane_t))
-		_lean = signf(target_x - _lane_from_x) * (1.0 - _lane_t) * 0.35
+		_lane_t = minf(_lane_t + delta / _lane_duration, 1.0)
+		var dist: float = target_x - _lane_from_x
+		# Remap the curve from u0 (0 for a fresh move) so it still runs from 0 to 1.
+		var u: float = lerpf(_lane_u0, 1.0, _lane_t)
+		var p0: float = lane_ease(_lane_u0)
+		var span: float = maxf(1.0 - p0, 0.001)
+		position.x = _lane_from_x + dist * (lane_ease(u) - p0) / span
+		_lane_vx = dist * lane_ease_speed(u) * (1.0 - _lane_u0) / span / _lane_duration
+		# A small hop across the lanes when running (not in the air, not rolling).
+		_lane_hop = sin(PI * _lane_t) * _cfg.lane_hop_height if on_ground and not rolling else 0.0
 	else:
 		position.x = target_x
-		_lean = 0.0
+		_lane_vx = 0.0
+		_lane_hop = 0.0
+	# Lean target follows the sideways speed (peak ~3x the average); the visual springs toward it.
+	var ref: float = _cfg.lane_width / maxf(_cfg.lane_change_time, 0.01) * 3.0
+	_lean = clampf(_lane_vx / ref, -1.2, 1.2) * _cfg.lane_lean
 
 
 func _update_vertical(delta: float) -> void:
@@ -353,6 +464,7 @@ func _land(ground: float) -> void:
 	on_ground = true
 	if is_dead:
 		return
+	visual.land(impact)
 	GameEvents.player_landed.emit(impact)
 	if slam_pending:
 		slam_pending = false
@@ -365,9 +477,7 @@ func _bump_back() -> void:
 	var back: int = previous_lane
 	previous_lane = lane
 	lane = back
-	_lane_from_x = position.x
-	_lane_t = 0.0
-	_lane_duration = _cfg.lane_change_time
+	_start_lane_move(_cfg.lane_change_time)
 	GameEvents.lane_changed.emit(previous_lane, lane)
 
 
@@ -379,42 +489,96 @@ func _set_collider_height(height: float) -> void:
 func _update_visual(delta: float) -> void:
 	var blinking: bool = _invulnerable_left > 0.0 and not is_dead and not dashing
 	visual.visible = not blinking or fmod(_invulnerable_left, 0.16) < 0.09
-	visual.animate(delta, 9.0 + speed_fraction() * 5.0, _lean)
+	visual.vertical_speed = 0.0 if on_ground else vertical_speed
+	visual.lane_hop = _lane_hop
+	visual.run_speed = track.world_speed
+	visual.animate(delta, 11.5 + speed_fraction() * 4.5, _lean)
 	# Contact shadow sits on whatever is under the runner (rails, roof, ramp); over a pit there is
 	# no surface to land on, so there is no shadow either.
 	var surface: float = track.get_ground_height(_cfg.lane_at_x(position.x), 0.0)
+	_surface = surface
 	_shadow.visible = surface > -1.0
 	var ground: float = maxf(surface, 0.0)
 	_shadow.global_position = Vector3(position.x, ground + VisualTuning.SHADOW_LIFT, 0.0)
 	var shrink: float = clampf(1.0 - (feet_y - ground) * VisualTuning.SHADOW_SHRINK_PER_M,
 			VisualTuning.SHADOW_MIN_SCALE, 1.0)
 	_shadow.scale = Vector3(VisualTuning.SHADOW_SIZE.x * shrink, 1.0, VisualTuning.SHADOW_SIZE.y * shrink)
-	if _sparks != null:
-		# Only while actually grinding along the rails at speed.
-		_sparks.emitting = on_ground and not is_dead and surface <= 0.05 and speed_fraction() > 0.15 \
-				and not SettingsManager.get_bool("reduce_effects")
 	trail.tick(delta, track.world_speed, position + Vector3(0.0, 0.18, 0.3), not is_dead)
 
 
-## Small warm sparks thrown back from the rails under the runner (VisualTuning.FEATURE_RAIL_SPARKS).
-func _make_sparks() -> CPUParticles3D:
+## A footfall of the run cycle: kick a small puff of earth from that foot (only on the ground
+## level, at speed; VisualTuning.FEATURE_RAIL_SPARKS / RAIL_SPARK_AMOUNT control it).
+func _on_footstep(side: int, foot: Vector3) -> void:
+	if _dust.is_empty() or not on_ground or is_dead or rolling or _surface > 0.05:
+		return
+	if track == null or track.world_speed < 4.0 or SettingsManager.get_bool("reduce_effects"):
+		return
+	var p: CPUParticles3D = _dust[0 if side < 0 else 1]
+	var speed: float = track.world_speed
+	p.global_position = Vector3(foot.x, maxf(_surface, 0.0) + 0.05, foot.z + 0.05)
+	p.initial_velocity_min = speed * 0.45
+	p.initial_velocity_max = speed * 0.75
+	p.restart()
+
+
+## Earthy dust puffs and clods kicked back from the feet (no glow).
+func _make_dust() -> CPUParticles3D:
 	var p: CPUParticles3D = CPUParticles3D.new()
-	p.amount = maxi(4, int(float(VisualTuning.RAIL_SPARK_AMOUNT) * SettingsManager.particle_scale()))
-	p.lifetime = 0.35
+	p.amount = maxi(3, int(float(VisualTuning.RAIL_SPARK_AMOUNT) * 0.5 * SettingsManager.particle_scale()))
+	p.lifetime = 0.45
+	p.one_shot = true
+	p.explosiveness = 0.9
 	p.emitting = false
 	p.local_coords = false
-	p.position = Vector3(0.0, 0.08, 0.15)
-	var mesh: BoxMesh = BoxMesh.new()
-	mesh.size = Vector3(0.03, 0.03, 0.12)
-	p.mesh = mesh
-	p.material_override = Mats.glow(Color(1.0, 0.75, 0.35), 2.5)
-	p.direction = Vector3(0.0, 0.6, 1.0)
-	p.spread = 35.0
-	p.initial_velocity_min = 3.0
-	p.initial_velocity_max = 6.0
-	p.gravity = Vector3(0.0, -14.0, 0.0)
-	p.scale_amount_min = 0.6
-	p.scale_amount_max = 1.2
-	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	p.emission_box_extents = Vector3(0.45, 0.02, 0.05)
+	var quad: QuadMesh = QuadMesh.new()
+	quad.size = Vector2.ONE
+	p.mesh = quad
+	p.material_override = _dust_mat()
+	p.direction = Vector3(0.0, 0.42, 1.0)
+	p.spread = 24.0
+	p.gravity = Vector3(0.0, -6.0, 0.0)
+	p.damping_min = 6.0
+	p.damping_max = 12.0
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.07
+	p.scale_amount_min = 0.12
+	p.scale_amount_max = 0.3
+	var grow: Curve = Curve.new()
+	grow.add_point(Vector2(0.0, 0.55))
+	grow.add_point(Vector2(0.35, 1.0))
+	grow.add_point(Vector2(1.0, 1.35))
+	p.scale_amount_curve = grow
+	var fade: Gradient = Gradient.new()
+	fade.set_color(0, Color(1.0, 1.0, 1.0, 0.0))
+	fade.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
+	fade.add_point(0.12, Color(1.0, 1.0, 1.0, 0.8))
+	fade.add_point(0.55, Color(1.0, 1.0, 1.0, 0.45))
+	p.color_ramp = fade
+	var tones: Gradient = Gradient.new()
+	tones.set_color(0, Color(0.3, 0.21, 0.13))
+	tones.set_color(1, Color(0.56, 0.45, 0.31))
+	p.color_initial_ramp = tones
 	return p
+
+
+static func _dust_mat() -> StandardMaterial3D:
+	if _dust_material == null:
+		var tex: GradientTexture2D = GradientTexture2D.new()
+		tex.width = 32
+		tex.height = 32
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(1.0, 0.5)
+		var g: Gradient = Gradient.new()
+		g.set_color(0, Color(1, 1, 1, 1))
+		g.set_color(1, Color(1, 1, 1, 0))
+		g.add_point(0.55, Color(1, 1, 1, 0.75))
+		tex.gradient = g
+		_dust_material = StandardMaterial3D.new()
+		_dust_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_dust_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_dust_material.vertex_color_use_as_albedo = true
+		_dust_material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		_dust_material.billboard_keep_scale = true
+		_dust_material.albedo_texture = tex
+	return _dust_material

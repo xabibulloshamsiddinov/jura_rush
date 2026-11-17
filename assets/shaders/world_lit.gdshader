@@ -1,9 +1,11 @@
-// Default world material: unshaded with baked fake sunlight ("toon/unlit"), emission, fog, bend.
-// Optional extras (all off by default, so every existing material looks exactly as before):
+// Default unshaded world material with baked fake sunlight ("toy/unlit"), emission, fog, bend.
+// Used by everything that is not part of the lit Jura Rush landscape (characters, creatures,
+// versus mode, previews). The baked sun follows SUN_DIR, the same direction as the real light.
+// Optional extras (all off by default):
 //   rim_*      view-angle rim light on the silhouette (player readability)
-//   pulse_*    breathing emission (obstacle warning stripes)
+//   pulse_*    breathing emission (warning paint)
 //   fog_pierce share of the emission that stays visible inside the fog (early warning)
-//   segment_*  emission split into panes along the mesh length (train windows)
+// The neon window panes (segment_*) are retired.
 shader_type spatial;
 render_mode unshaded, skip_vertex_transform;
 #include "res://assets/shaders/world_common.gdshaderinc"
@@ -20,22 +22,17 @@ uniform float rim_power = 2.5;
 uniform float pulse_speed = 0.0;
 uniform float pulse_amount = 0.0;
 uniform float fog_pierce = 0.0;
-// > 0: emission only on panes segment_len metres long (along local Z), segment_fill of each lit.
-uniform float segment_len = 0.0;
-uniform float segment_fill = 0.7;
 
 varying float v_fog;
 varying float v_shade;
-varying float v_seg;
 
 void vertex() {
-	vec3 wn = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	v_seg = VERTEX.z * length(MODEL_MATRIX[2].xyz);
-	v_shade = 1.0 - shade_strength + shade_strength * max(dot(wn, SUN_DIR), 0.0) * 1.25;
+	vec3 wn = normalize(MODEL_NORMAL_MATRIX * NORMAL);
+	v_shade = sun_shade(wn, shade_strength);
 	vec3 vp = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_fog = fog_amount(vp);
-	VERTEX = curve_world(vp);
-	NORMAL = normalize((MODELVIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	VERTEX = CURVE_WORLD(vp);
+	NORMAL = normalize(MODELVIEW_NORMAL_MATRIX * NORMAL);
 }
 
 void fragment() {
@@ -45,10 +42,6 @@ void fragment() {
 	em = mix(em, biome_accent2.rgb, clamp(accent_mix - 1.0, 0.0, 1.0));
 	float pulse = 1.0 + pulse_amount * sin(TIME * pulse_speed);
 	em *= emission_energy * pulse;
-	if (segment_len > 0.0) {
-		float f = fract(v_seg / segment_len);
-		em *= step(0.5 - segment_fill * 0.5, f) * step(f, 0.5 + segment_fill * 0.5);
-	}
 	if (rim_strength > 0.0) {
 		float facing = clamp(dot(normalize(NORMAL), VIEW), 0.0, 1.0);
 		em += rim_color.rgb * rim_strength * pow(1.0 - facing, rim_power);

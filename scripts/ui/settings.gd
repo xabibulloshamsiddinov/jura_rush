@@ -16,11 +16,10 @@ func build() -> void:
 	add_child(wrap)
 	var top: HBoxContainer = UIKit.hbox(20)
 	column.add_child(top)
-	var back: UIButton = UIKit.button("<", &"ghost", 120.0)
-	back.feedback = &"back"
+	var back: UIButton = UIKit.back_button()
 	back.pressed.connect(func() -> void: SceneRouter.back())
 	top.add_child(back)
-	var title: Label = UIKit.label(tr_key(&"settings.title"), ui.size_h1, ui.cyan)
+	var title: Label = UIKit.label(tr_key(&"settings.title"), ui.size_h1, ui.accent)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
 	var balance: Control = Control.new()
@@ -51,7 +50,7 @@ func build() -> void:
 	_reset = UIKit.button(tr_key(&"settings.reset"), &"danger")
 	_reset.pressed.connect(_on_reset)
 	list.add_child(_reset)
-	list.add_child(UIKit.label(tr_key(&"settings.credits"), ui.size_body, ui.magenta))
+	list.add_child(UIKit.label(tr_key(&"settings.credits"), ui.size_body, ui.accent))
 	var credits: Label = UIKit.label(tr_key(&"settings.credits_text"), ui.size_small, ui.text_dim)
 	credits.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	list.add_child(credits)
@@ -76,7 +75,6 @@ func _row(parent: Control, key: StringName) -> HBoxContainer:
 
 
 func _slider(parent: Control, key: StringName, setting: String, low: float, high: float) -> void:
-	var ui: UITheme = UITheme.current()
 	var row: HBoxContainer = _row(parent, key)
 	var slider: HSlider = HSlider.new()
 	slider.min_value = low
@@ -84,9 +82,6 @@ func _slider(parent: Control, key: StringName, setting: String, low: float, high
 	slider.step = 0.05
 	slider.value = SettingsManager.get_float(setting)
 	slider.custom_minimum_size = Vector2(420.0, 96.0)
-	slider.add_theme_stylebox_override(&"slider", UIKit.box(Color(0.0, 0.0, 0.0, 0.6), 8))
-	slider.add_theme_stylebox_override(&"grabber_area", UIKit.box(ui.cyan, 8))
-	slider.add_theme_stylebox_override(&"grabber_area_highlight", UIKit.box(ui.cyan, 8))
 	slider.value_changed.connect(func(value: float) -> void: SettingsManager.set_value(setting, value))
 	slider.drag_ended.connect(func(_changed: bool) -> void: GameEvents.ui_feedback.emit(&"click"))
 	row.add_child(slider)

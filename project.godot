@@ -14,16 +14,16 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Neon Rails"
-config/description="Original 3D endless lane runner built from procedural art and audio."
+config/name="Jura Rush"
+config/description="Mesozoic endless runner: a caveman in animal skins sprints through dinosaur country, dodging stones and herds, grabbing eggs and outrunning a T-Rex. Original 3D art and audio, all generated in code."
 config/version="1.0.0"
 run/main_scene="res://scenes/main.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.6", "Mobile")
 run/max_fps=60
-boot_splash/bg_color=Color(0.027, 0.031, 0.075, 1)
+boot_splash/bg_color=Color(0.2, 0.09, 0.1, 1)
 boot_splash/show_image=false
-config/icon="uid://c4u0fp4hgbdy1"
+config/icon="res://assets/textures/icon.png"
 
 [autoload]
 
@@ -82,7 +82,7 @@ textures/vram_compression/import_etc2_astc=true
 lights_and_shadows/directional_shadow/size=1024
 lights_and_shadows/directional_shadow/size.mobile=1024
 anti_aliasing/quality/msaa_3d=1
-environment/defaults/default_clear_color=Color(0.027, 0.031, 0.075, 1)
+environment/defaults/default_clear_color=Color(0.84, 0.87, 0.8, 1)
 
 [shader_globals]
 
@@ -104,13 +104,17 @@ fog_end={
 }
 fog_color={
 "type": "color",
-"value": Color(0.05, 0.03, 0.15, 1)
+"value": Color(0.84, 0.87, 0.8, 1)
 }
 biome_accent={
 "type": "color",
-"value": Color(0, 0.9, 1, 1)
+"value": Color(0.34, 0.6, 0.22, 1)
 }
 biome_accent2={
 "type": "color",
-"value": Color(1, 0.2, 0.8, 1)
+"value": Color(0.63, 0.59, 0.53, 0)
+}
+run_cam_z={
+"type": "float",
+"value": 6.5
 }

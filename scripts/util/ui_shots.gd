@@ -1,5 +1,6 @@
 ## Dev tool: `godot --path . -- --ui-shots=<dir>` opens every menu screen in turn and saves a
-## screenshot of each (layout review at any --resolution). Uses the throw-away automation save,
+## screenshot of each (layout review at any --resolution): the menu in en / uz / ru over the live
+## 3D world, the shop with every runner skin in its 3D preview, the flow screens. Uses the throw-away automation save,
 ## seeded with a few coins and purchases so the shop shows every button state.
 class_name UiShots
 extends Node
@@ -18,10 +19,33 @@ func _ready() -> void:
 	SaveSystem.data["best_score"] = 48210
 	await _wait(1.6)
 	await _save("menu")
+	# The menu over the live 3D world in every language.
+	for code: String in ["uz", "ru"]:
+		SettingsManager.set_value("language", code)
+		await _wait(0.8)
+		await _save("menu_" + code)
+	SettingsManager.set_value("language", "en")
+	await _wait(0.6)
 	SceneRouter.push(&"shop", {"tab": 0})
 	await _wait(0.8)
 	await _save("shop_runners")
 	var shop: Node = SceneRouter.get_screen(&"shop")
+	# Every runner skin in the 3D preview (row tap = select).
+	var selected: Dictionary = shop.get(&"_selected")
+	for def: CharacterDef in ContentDB.CHARACTERS:
+		selected[0] = def.id
+		shop.call(&"_refresh")
+		await _wait(0.7)
+		await _save("shop_runner_" + String(def.id))
+	selected.erase(0)
+	for code: String in ["uz", "ru"]:
+		SettingsManager.set_value("language", code)
+		await _wait(0.8)
+		shop = SceneRouter.get_screen(&"shop")
+		await _save("shop_runners_" + code)
+	SettingsManager.set_value("language", "en")
+	await _wait(0.8)
+	shop = SceneRouter.get_screen(&"shop")
 	shop.call(&"_ask_confirm", &"item", &"pixel", "Pixel", 2000)
 	await _wait(0.5)
 	await _save("shop_confirm")

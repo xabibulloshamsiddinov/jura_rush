@@ -1,15 +1,32 @@
-## Ramp leading up to a train roof. Running into its low end is safe (the ground just rises);
+## Ramp leading up to a sauropod's back. Running into its low end is safe (the ground just rises);
 ## stepping into its side while it is already tall is a stumble.
+## Visual: when ChunkBuilder pairs it with a herd (set_paired) the Brachiosaurus tail IS the ramp
+## and this node draws nothing; on its own it is a mossy rock slope with the same incline.
 class_name Ramp
 extends ObstacleBase
 
-var _wedge: MeshInstance3D = null
-var _arrow: MeshInstance3D = null
+const PREWARM_LENGTHS: Array[float] = [3.0, 6.0, 9.0]
+
+var paired: bool = false
+
+var _rock: MeshInstance3D = null
 
 
 func setup(p_def: ObstacleDef) -> void:
 	super.setup(p_def)
 	shapes_ground = true
+
+
+func on_acquire() -> void:
+	super.on_acquire()
+	set_paired(false)
+
+
+## True: a sauropod's tail forms this ramp, so the rock is hidden.
+func set_paired(value: bool) -> void:
+	paired = value
+	if _rock != null:
+		_rock.visible = not value
 
 
 func ground_height_at(dz: float) -> float:
@@ -27,23 +44,16 @@ func _height_at(dz: float) -> float:
 
 func _build_visual() -> Node3D:
 	var root: Node3D = Node3D.new()
-	_wedge = MeshLib.mi(MeshLib.wedge(), Mats.lit(def.color))
-	# The wedge is high at local x = -0.5; turning it -90 deg about Y maps that to the far end.
-	_wedge.rotation.y = -PI * 0.5
-	_wedge.extra_cull_margin = 8.0
-	root.add_child(_wedge)
-	_arrow = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, def.glow, 2.2))
-	root.add_child(_arrow)
+	for l: float in PREWARM_LENGTHS:
+		RockSlope.mesh(l, def.size.y)
+	_rock = MeshInstance3D.new()
+	_rock.material_override = CreatureMats.skin(&"rock")
+	_rock.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_rock.extra_cull_margin = 4.0
+	root.add_child(_rock)
 	return root
 
 
 func _apply_length() -> void:
-	if _wedge == null:
-		return
-	var h: float = def.size.y
-	_wedge.scale = Vector3(length, h, def.size.x)
-	_wedge.position = Vector3(0.0, h * 0.5, 0.0)
-	var slope: float = atan2(h, length)
-	_arrow.position = Vector3(0.0, h * 0.5 + 0.03, 0.0)
-	_arrow.rotation = Vector3(slope, 0.0, 0.0)
-	_arrow.scale = Vector3(0.25, 0.03, sqrt(h * h + length * length) * 0.8)
+	if _rock != null:
+		_rock.mesh = RockSlope.mesh(length, def.size.y)

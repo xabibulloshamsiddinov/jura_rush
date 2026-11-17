@@ -7,6 +7,6 @@ script = ExtResource("1")
 id = &"magenta"
 name_key = &"trail.magenta"
 price = 400
-color = Color(1, 0.2, 0.85, 1)
+color = Color(0.36, 0.72, 0.26, 1)
 width = 0.5
 length = 12

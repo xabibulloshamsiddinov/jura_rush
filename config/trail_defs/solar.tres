@@ -7,6 +7,6 @@ script = ExtResource("1")
 id = &"solar"
 name_key = &"trail.solar"
 price = 900
-color = Color(1, 0.75, 0.1, 1)
+color = Color(1, 0.46, 0.12, 1)
 width = 0.6
 length = 14

@@ -1,25 +1,34 @@
-## Train car(s). Static trains have a walkable roof; moving trains drive toward the player once
-## they are within the activation distance and telegraph with a blinking headlight.
+## "Train" obstacles are dinosaurs now (gameplay is unchanged: same collision box, hit types,
+## walkable top, moving speed and telegraph timing).
+##   train_long / train_short  a Brachiosaurus herd (static, walkable backs at the top). Tail-first
+##                             when ChunkBuilder reports a ramp leading in (set_ramp_lead), else
+##                             head-first, an unclimbable wall facing the runner.
+##   train_moving              a small Triceratops stampede: idles, paws / snorts / shakes its head
+##                             when it telegraphs, then gallops at the runner when active.
 class_name Train
 extends ObstacleBase
 
-const BODY_LIFT: float = 0.35
+## Stampede: animals are about this long; at most this many in one run.
+const TRIKE_LEN: float = 4.5
+const MAX_TRIKES: int = 3
+## Moving herds beyond this distance (fog) are not animated.
+const ANIMATE_RANGE: float = 175.0
+## Hide margins beyond the measured visual (ObstacleBase.far_overhang): idle neck / tail sway of
+## the sauropods, the trike tails.
+const HERD_SWAY_MARGIN: float = 0.25
+const TRIKE_TAIL_MARGIN: float = 0.6
 
-var _body: MeshInstance3D = null
-var _stripe_l: MeshInstance3D = null
-var _stripe_r: MeshInstance3D = null
-var _roof: MeshInstance3D = null
-var _front: MeshInstance3D = null
-var _under: MeshInstance3D = null
-var _win_l: MeshInstance3D = null
-var _win_r: MeshInstance3D = null
-var _edge_l: MeshInstance3D = null
-var _edge_r: MeshInstance3D = null
-var _shield: MeshInstance3D = null
-var _sign: MeshInstance3D = null
+static var _prewarmed: bool = false
+
+var herd: Brachiosaurus = null
+var trikes: Array[Triceratops] = []
+
 var _active: bool = false
 var _warned: bool = false
-var _blink: float = 0.0
+var _ramp_length: float = 0.0
+var _ramp_height: float = 3.0
+var _middle_side: float = 0.0
+var _trike_count: int = 0
 var _cfg: GameConfig = GameConfig.current()
 
 
@@ -27,9 +36,29 @@ func on_acquire() -> void:
 	super.on_acquire()
 	_active = false
 	_warned = false
-	_blink = 0.0
-	if _front != null:
-		_front.scale = Vector3(1.3, 0.5, 0.06)
+	_ramp_length = 0.0
+	_middle_side = 0.0
+	for t: Triceratops in trikes:
+		t.reset_pose()
+
+
+## Called by ChunkBuilder when a ramp in the same lane leads straight into this run: the herd
+## turns tail-first and the nearest animal's tail becomes the ramp.
+func set_ramp_lead(ramp_length: float, ramp_height: float) -> void:
+	_ramp_length = ramp_length
+	_ramp_height = ramp_height
+	_apply_length()
+
+
+## Which way middle-lane necks curl (-1 = -X, +1 = +X); ChunkBuilder picks the free side.
+func set_neck_side(side: float) -> void:
+	_middle_side = side
+	_apply_length()
+
+
+## True when the herd stands tail-first over a ramp.
+func is_tail_first() -> bool:
+	return _ramp_length > 0.0
 
 
 func telegraph() -> void:
@@ -43,71 +72,61 @@ func tick(delta: float, world_speed: float, chunk_z: float) -> void:
 		telegraph()
 	if front_z > -_cfg.moving_train_activation:
 		_active = true
+	var own_speed: float = world_speed * _cfg.moving_train_speed_factor
 	if _active:
-		position.z += world_speed * _cfg.moving_train_speed_factor * delta
-	if _warned and _front != null:
-		_blink += delta * 10.0
-		var pulse: float = 1.0 + 0.6 * absf(sin(_blink))
-		_front.scale = Vector3(1.3 * pulse, 0.5 * pulse, 0.06)
-
-
-## Look (key art): dark body on a darker undercarriage, a row of lit cabin windows per side, a
-## neon stripe in the obstacle colour, magenta roof edges and destination sign, a dark windscreen
-## and a bright headlight.
-const GLASS_COLOR: Color = Color(0.03, 0.035, 0.08)
-const CABIN_LIGHT: Color = Color(0.72, 0.88, 1.0)
-const UNDER_COLOR: Color = Color(0.025, 0.02, 0.045)
-const WINDOW_PITCH: float = 1.6
+		position.z += own_speed * delta
+	if not visible or front_z < -ANIMATE_RANGE:
+		return
+	var mode: Triceratops.Mode = Triceratops.Mode.IDLE
+	if _active:
+		mode = Triceratops.Mode.CHARGE
+	elif _warned:
+		mode = Triceratops.Mode.TELEGRAPH
+	for i in range(_trike_count):
+		var t: Triceratops = trikes[i]
+		t.ground_drift = Vector3(0.0, 0.0, world_speed)
+		t.animate(delta, mode, own_speed)
 
 
 func _build_visual() -> Node3D:
 	var root: Node3D = Node3D.new()
-	var h: float = def.size.y
-	var energy: float = 2.4 if def.moving else 1.6
-	_body = MeshLib.mi(MeshLib.box(), Mats.lit(def.color), Vector3.ZERO)
-	_under = MeshLib.mi(MeshLib.box(), Mats.lit(UNDER_COLOR), Vector3(0.0, BODY_LIFT * 0.5, 0.0))
-	var windows: ShaderMaterial = Mats.lit_segmented(GLASS_COLOR, CABIN_LIGHT, 0.85, WINDOW_PITCH, 0.7)
-	_win_l = MeshLib.mi(MeshLib.box(), windows)
-	_win_r = MeshLib.mi(MeshLib.box(), windows)
-	_stripe_l = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, def.glow, energy))
-	_stripe_r = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, def.glow, energy))
-	_edge_l = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, Color.WHITE, 1.8, 2.0))
-	_edge_r = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, Color.WHITE, 1.8, 2.0))
-	_roof = MeshLib.mi(MeshLib.box(), Mats.lit(def.color.lightened(0.12)), Vector3(0.0, h - 0.03, 0.0))
-	_shield = MeshLib.mi(MeshLib.box(), Mats.lit(GLASS_COLOR, Color(0.3, 0.75, 1.0), 0.12))
-	_sign = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, Color.WHITE, 1.6, 2.0))
-	_front = MeshLib.mi(MeshLib.box(), Mats.lit(Color.BLACK, Color(1.0, 0.95, 0.75), 3.0))
-	for node: MeshInstance3D in [_body, _under, _win_l, _win_r, _stripe_l, _stripe_r, _edge_l, _edge_r,
-			_roof, _shield, _sign, _front]:
-		node.extra_cull_margin = 12.0
-		root.add_child(node)
+	if def.moving:
+		for i in range(MAX_TRIKES):
+			var t: Triceratops = Triceratops.new(i * 31 + def.pool_size)
+			t.rotation.y = PI
+			t.visible = false
+			root.add_child(t)
+			trikes.append(t)
+	else:
+		if not _prewarmed:
+			_prewarmed = true
+			Brachiosaurus.prewarm([6.0, 3.0, 9.0])
+		herd = Brachiosaurus.new(Brachiosaurus.MAX_ANIMALS if def.id == &"train_long" else 2)
+		root.add_child(herd)
 	return root
 
 
 func _apply_length() -> void:
-	if _body == null:
-		return
-	var h: float = def.size.y
-	var w: float = def.size.x
-	var half_w: float = w * 0.5
-	var body_h: float = h - BODY_LIFT
-	_body.position = Vector3(0.0, BODY_LIFT + body_h * 0.5, 0.0)
-	_body.scale = Vector3(w, body_h, length)
-	_under.scale = Vector3(w * 0.78, BODY_LIFT, length - 0.6)
-	for side: float in [-1.0, 1.0]:
-		var win: MeshInstance3D = _win_l if side < 0.0 else _win_r
-		win.position = Vector3(side * (half_w + 0.01), h * 0.66, 0.0)
-		win.scale = Vector3(0.03, h * 0.22, length - 1.0)
-		var stripe: MeshInstance3D = _stripe_l if side < 0.0 else _stripe_r
-		stripe.position = Vector3(side * (half_w + 0.012), h * 0.36, 0.0)
-		stripe.scale = Vector3(0.03, 0.12, length - 0.4)
-		var edge: MeshInstance3D = _edge_l if side < 0.0 else _edge_r
-		edge.position = Vector3(side * (half_w - 0.04), h + 0.01, 0.0)
-		edge.scale = Vector3(0.07, 0.06, length - 0.3)
-	_roof.scale = Vector3(w * 0.8, 0.08, length - 0.3)
-	_shield.position = Vector3(0.0, h * 0.7, length * 0.5 + 0.015)
-	_shield.scale = Vector3(w * 0.78, h * 0.26, 0.04)
-	_sign.position = Vector3(0.0, h * 0.9, length * 0.5 + 0.02)
-	_sign.scale = Vector3(w * 0.6, 0.1, 0.04)
-	_front.position = Vector3(0.0, h * 0.4, length * 0.5 + 0.02)
-	_front.scale = Vector3(1.3, 0.5, 0.06)
+	if herd != null:
+		var outward: float = 0.0
+		if lane == 0:
+			outward = -1.0
+		elif lane == _cfg.lane_count - 1:
+			outward = 1.0
+		var side: float = _middle_side if _middle_side != 0.0 else (1.0 if int(absf(position.z)) % 2 == 0 else -1.0)
+		herd.layout(length, _ramp_length, _ramp_height, outward, side, absf(position.z) * 0.13 + float(lane))
+		# Necks / tails beyond the box stay drawn until they are behind the runner too (+ sway).
+		far_overhang = maxf(-herd.far_extent() - length * 0.5, 0.0) + HERD_SWAY_MARGIN
+	elif not trikes.is_empty():
+		# Tails (whipping in the charge) reach a little past the box.
+		far_overhang = TRIKE_TAIL_MARGIN
+		_trike_count = clampi(roundi(length / TRIKE_LEN), 1, MAX_TRIKES)
+		var a: float = length / float(_trike_count)
+		var s: float = clampf(a / 4.7, 0.85, 1.05)
+		for i in range(trikes.size()):
+			var t: Triceratops = trikes[i]
+			t.visible = i < _trike_count
+			# Centre each animal's nose-to-tail extent (beak at -2.76, tail at +2.3 in its model).
+			t.position = Vector3(0.06 * sin(float(i) * 2.3 + position.z), 0.0,
+					length * 0.5 - (float(i) + 0.5) * a - 0.23 * s)
+			t.scale = Vector3.ONE * s

@@ -20,22 +20,22 @@ func build() -> void:
 	var wrap: MarginContainer = UIKit.margin(column, 56, 90)
 	UIKit.fill(wrap)
 	add_child(wrap)
-	column.add_child(UIKit.label(tr_key(&"over.title"), ui.size_h1, ui.magenta))
-	_panel = UIKit.panel(false, ui.cyan)
+	column.add_child(UIKit.label(tr_key(&"over.title"), ui.size_h1, ui.accent))
+	_panel = UIKit.panel(false, ui.accent)
 	column.add_child(_panel)
 	var stats: VBoxContainer = UIKit.vbox(14)
 	_panel.add_child(UIKit.margin(stats, 30, 30))
 	stats.add_child(UIKit.label(tr_key(&"over.score"), ui.size_body, ui.text_dim))
 	_score = UIKit.label("0", ui.size_title, ui.text)
 	stats.add_child(_score)
-	_best = UIKit.label("", ui.size_h2, ui.yellow)
+	_best = UIKit.label("", ui.size_h2, ui.accent)
 	stats.add_child(_best)
 	stats.add_child(UIKit.label(tr_key(&"over.coins_run"), ui.size_small, ui.text_dim))
-	_coins = CoinCounter.new(ui.size_h2, ui.yellow, HORIZONTAL_ALIGNMENT_CENTER)
+	_coins = CoinCounter.new(ui.size_h2, ui.accent, HORIZONTAL_ALIGNMENT_CENTER)
 	stats.add_child(_coins)
 	_distance = UIKit.label("", ui.size_h2, ui.text)
 	stats.add_child(_distance)
-	_daily = UIKit.label("", ui.size_body, ui.cyan)
+	_daily = UIKit.label("", ui.size_body, ui.success)
 	stats.add_child(_daily)
 	_missions = UIKit.vbox(12)
 	column.add_child(_missions)
@@ -76,7 +76,7 @@ func on_enter(_args: Dictionary) -> void:
 	_best.text = tr_key(&"over.new_best") if new_best else "%s: %s" % [tr_key(&"over.best"),
 			MathUtils.group_digits(int(result.get("best", 0)))]
 	_best.add_theme_color_override(&"font_color",
-			UITheme.current().yellow if new_best else UITheme.current().text_dim)
+			UITheme.current().accent if new_best else UITheme.current().text_dim)
 	_daily.visible = result.has("daily_reward")
 	if result.has("daily_reward"):
 		_daily.text = Tr.f(&"over.daily", {"n": int(result["daily_reward"]), "s": int(result["daily_streak"])})
@@ -112,8 +112,8 @@ func _fill_missions() -> void:
 		var line: VBoxContainer = UIKit.vbox(4)
 		line.add_child(UIKit.label("%s   %d / %d" % [Tr.f(def.text_key(), {"n": def.target}),
 				int(row["value"]), int(row["target"])], ui.size_small,
-				ui.yellow if done else ui.text, HORIZONTAL_ALIGNMENT_LEFT))
-		var bar: ProgressBar = UIKit.progress(0.0, float(row["target"]), ui.yellow if done else ui.cyan)
+				ui.accent if done else ui.text, HORIZONTAL_ALIGNMENT_LEFT))
+		var bar: ProgressBar = UIKit.progress(0.0, float(row["target"]), ui.accent if done else ui.primary)
 		line.add_child(bar)
 		_missions.add_child(line)
 		bar.create_tween().tween_property(bar, "value", float(row["value"]), 0.6).set_delay(delay)

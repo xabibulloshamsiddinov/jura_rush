@@ -10,7 +10,8 @@ func enter(_prev: StringName) -> void:
 	var cfg: GameConfig = GameConfig.current()
 	_left = cfg.roll_time_at(player.speed_fraction())
 	player.set_rolling(true)
-	player.visual.set_pose(PlayerVisual.Pose.ROLL)
+	# One forward roll timed to this roll's length.
+	player.visual.set_pose(PlayerVisual.Pose.ROLL, _left, true)
 	GameEvents.player_rolled.emit()
 
 

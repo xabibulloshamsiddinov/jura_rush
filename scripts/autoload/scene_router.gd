@@ -5,8 +5,7 @@ extends Node
 
 const SCREEN_DIR: String = "res://scenes/ui/"
 const SCREEN_IDS: Array[StringName] = [&"loading_overlay", &"main_menu", &"hud", &"pause_menu",
-		&"revive_popup", &"game_over", &"shop", &"settings", &"missions", &"tutorial", &"versus_intro",
-		&"versus_hud"]
+		&"revive_popup", &"game_over", &"shop", &"settings", &"missions", &"tutorial"]
 
 var _layer: CanvasLayer = null
 var _root: Control = null
@@ -23,7 +22,7 @@ func _ready() -> void:
 	add_child(_layer)
 	_root = Control.new()
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# The one shared Godot Theme: every screen below inherits fonts and neon button styles.
+	# The one shared Godot Theme: every screen below inherits fonts and chunky button styles.
 	_root.theme = UITheme.godot_theme()
 	# FPS / draw-call readout above every screen (Settings > Show FPS).
 	var perf: PerfOverlay = PerfOverlay.new()

@@ -4,7 +4,7 @@
 extends UIScreen
 
 const MAX_FLOATERS: int = 10
-const MULTIPLIER_COLOR: Color = Color(1.0, 0.45, 0.92)
+const MULTIPLIER_COLOR: Color = Color(0.66, 0.92, 0.34)
 const MULTIPLIER_SIZE: int = 60
 const DISTANCE_SIZE: int = 48
 
@@ -34,34 +34,37 @@ func build() -> void:
 	add_child(wrap)
 	var top: HBoxContainer = UIKit.hbox(20)
 	column.add_child(top)
-	var pause: UIButton = UIKit.button("II", &"ghost", 110.0)
+	var pause: UIButton = UIKit.button("", &"ghost", 110.0)
 	pause.custom_minimum_size = Vector2(110.0, 110.0)
+	var pause_center: CenterContainer = CenterContainer.new()
+	pause_center.add_child(_pause_icon())
+	pause.attach_content(pause_center, 0, 0)
 	pause.pressed.connect(func() -> void: GameEvents.request_pause.emit())
 	top.add_child(pause)
 	_score = UIKit.label("0", ui.size_h1, ui.text)
 	_score.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_score)
-	_coins = CoinCounter.new(ui.size_h2, ui.yellow, HORIZONTAL_ALIGNMENT_RIGHT)
+	_coins = CoinCounter.new(ui.size_h2, ui.accent, HORIZONTAL_ALIGNMENT_RIGHT)
 	_coins.custom_minimum_size = Vector2(190.0, 0.0)
 	top.add_child(_coins)
 	_secondary = UIKit.hbox(20)
 	column.add_child(_secondary)
-	# Multiplier and distance: bigger, bright and heavily outlined so they read on the dark city.
+	# Multiplier and distance: bigger, bright and heavily outlined so they read on the bright world.
 	_multiplier = UIKit.label("x1", MULTIPLIER_SIZE, MULTIPLIER_COLOR, HORIZONTAL_ALIGNMENT_LEFT)
 	_multiplier.custom_minimum_size = Vector2(110.0, 0.0)
-	_strong_outline(_multiplier)
+	UIKit.strong_outline(_multiplier)
 	_secondary.add_child(_multiplier)
 	_distance = UIKit.label("0 m", DISTANCE_SIZE, ui.text)
-	_strong_outline(_distance)
+	UIKit.strong_outline(_distance)
 	_distance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_secondary.add_child(_distance)
 	var balance: Control = Control.new()
 	balance.custom_minimum_size = Vector2(110.0, 0.0)
 	_secondary.add_child(balance)
-	_combo = UIKit.label("", ui.size_h2, ui.yellow)
+	_combo = UIKit.label("", ui.size_h2, ui.accent)
 	_combo.visible = false
 	column.add_child(_combo)
-	_banner = UIKit.label("", ui.size_h1, ui.cyan)
+	_banner = UIKit.label("", ui.size_h1, ui.accent)
 	_banner.modulate.a = 0.0
 	column.add_child(_banner)
 	column.add_child(UIKit.spacer())
@@ -104,9 +107,9 @@ func connect_events() -> void:
 	GameEvents.biome_changed.connect(func(_id: StringName, title: String) -> void: _show_banner(title))
 	GameEvents.mission_progress.connect(_on_mission_progress)
 	GameEvents.mission_completed.connect(func(_id: StringName) -> void:
-		_show_ticker(tr_key(&"toast.mission"), UITheme.current().yellow))
+		_show_ticker(tr_key(&"toast.mission"), UITheme.current().accent))
 	GameEvents.achievement_unlocked.connect(func(_id: StringName) -> void:
-		_show_ticker(tr_key(&"toast.achievement"), UITheme.current().yellow))
+		_show_ticker(tr_key(&"toast.achievement"), UITheme.current().accent))
 	GameEvents.mission_set_completed.connect(func(multiplier: int) -> void:
 		_show_banner(Tr.f(&"toast.set", {"n": multiplier})))
 	GameEvents.mystery_box_opened.connect(_on_box)
@@ -143,7 +146,7 @@ func _on_countdown(remaining: int) -> void:
 	_countdown.visible = true
 	_countdown.text = tr_key(&"hud.go") if remaining <= 0 else str(remaining)
 	_countdown.add_theme_color_override(&"font_color",
-			UITheme.current().yellow if remaining <= 0 else UITheme.current().text)
+			UITheme.current().accent if remaining <= 0 else UITheme.current().text)
 	UITween.pop(_countdown, 0.0, 1.6)
 	if remaining <= 0:
 		var tween: Tween = _countdown.create_tween()
@@ -161,6 +164,7 @@ func _on_powerup_activated(id: StringName, duration: float) -> void:
 		timer = RadialTimer.new(112.0)
 		timer.color = def.color
 		timer.glyph = def.icon
+		timer.icon_kind = UIIcon.for_powerup(id)
 		_powerups.add_child(timer)
 		_timers[id] = timer
 		UITween.pop(timer)
@@ -183,7 +187,7 @@ func _on_coin(value: int, world_pos: Vector3) -> void:
 	if not visible or _active_floaters >= MAX_FLOATERS:
 		return
 	var target: Vector2 = _coins.global_position + _coins.size * 0.5 - global_position
-	_float("+%d" % value, _to_screen(world_pos), target, UITheme.current().yellow, 34, 0.45)
+	_float("+%d" % value, _to_screen(world_pos), target, UITheme.current().accent, 34, 0.45)
 
 
 func _on_box(reward: StringName, amount: int) -> void:
@@ -262,6 +266,14 @@ func _ignore_mouse(node: Node, except: Control) -> void:
 		_ignore_mouse(child, except)
 
 
-func _strong_outline(label: Label) -> void:
-	label.add_theme_color_override(&"font_outline_color", Color(0.0, 0.0, 0.02, 0.9))
-	label.add_theme_constant_override(&"outline_size", 12)
+## Two chunky bars (the pause symbol), drawn so it never depends on a font glyph.
+func _pause_icon() -> Control:
+	var node: Control = Control.new()
+	node.custom_minimum_size = Vector2(44.0, 44.0)
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ui: UITheme = UITheme.current()
+	var bar: StyleBoxFlat = UIKit.box(ui.text, 5, ui.outline, 4, 0.0)
+	node.draw.connect(func() -> void:
+		node.draw_style_box(bar, Rect2(2.0, 2.0, 15.0, 40.0))
+		node.draw_style_box(bar, Rect2(27.0, 2.0, 15.0, 40.0)))
+	return node

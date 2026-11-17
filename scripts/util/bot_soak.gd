@@ -29,8 +29,9 @@ func _init(world: GameWorld, seconds: float) -> void:
 func _ready() -> void:
 	Engine.max_fps = 0
 	Engine.max_physics_steps_per_frame = 64
-	# time_scale multiplies the physics step, so the tick rate is raised by the same factor:
-	# the simulation still advances in exact 1/60 s steps, just ten times as many per second.
+	# time_scale multiplies every delta. GameWorld steps in _process and splits each (scaled) frame
+	# into sub-steps of at most 1/60 s, so the simulation keeps its tuned step size; the physics
+	# rate is raised by the same factor only so this node's own clock (_simulated) keeps pace.
 	Engine.physics_ticks_per_second = int(60.0 * TIME_SCALE)
 	_world.bot.enabled = true
 	GameEvents.player_crashed.connect(_on_crash)

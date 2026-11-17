@@ -9,7 +9,7 @@ static var _capsule: CapsuleMesh = null
 static var _cylinder: CylinderMesh = null
 static var _quad: QuadMesh = null
 static var _plane: PlaneMesh = null
-static var _coin: CylinderMesh = null
+static var _coin: ArrayMesh = null
 static var _wedge: PrismMesh = null
 static var _cone: CylinderMesh = null
 
@@ -75,16 +75,26 @@ static func plane() -> PlaneMesh:
 	return _plane
 
 
-## Coin disc (axis along Y; the MultiMesh instance basis stands it upright).
-static func coin() -> CylinderMesh:
+## The collectible egg (old name: coin). A smooth lathed egg, VisualTuning.EGG_HEIGHT tall and
+## a little wider below its middle, centred on the origin, long axis +Y.
+static func coin() -> ArrayMesh:
 	if _coin == null:
-		_coin = CylinderMesh.new()
-		_coin.top_radius = VisualTuning.COIN_RADIUS
-		_coin.bottom_radius = VisualTuning.COIN_RADIUS
-		_coin.height = VisualTuning.COIN_THICKNESS
-		_coin.radial_segments = 10
-		_coin.rings = 1
+		var profile: PackedVector2Array = PackedVector2Array()
+		var rings: int = 9
+		var h: float = VisualTuning.EGG_HEIGHT
+		var r: float = VisualTuning.EGG_RADIUS
+		for i in range(rings + 1):
+			var a: float = PI * float(i) / float(rings)
+			profile.append(Vector2(sin(a) * r * (1.0 + 0.13 * cos(a)), -cos(a) * h * 0.5))
+		var st: SurfaceTool = NatureMesh.begin()
+		NatureMesh.lathe(st, Vector3.ZERO, profile, 12, PackedColorArray([Color.WHITE]), true)
+		_coin = NatureMesh.commit(st)
 	return _coin
+
+
+## The collectible egg mesh (same as coin()).
+static func egg() -> ArrayMesh:
+	return coin()
 
 
 ## Right-angled wedge (1 x 1 x 1): high at x = -0.5, sloping down to x = +0.5.

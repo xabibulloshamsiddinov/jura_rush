@@ -25,7 +25,7 @@ func build() -> void:
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	UIKit.fill(wrap)
 	add_child(wrap)
-	var card: PanelContainer = UIKit.panel(false, ui.yellow)
+	var card: PanelContainer = UIKit.panel(false, ui.accent)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_text = UIKit.label("", ui.size_h2, ui.text)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -39,7 +39,7 @@ func build() -> void:
 	_finger = Panel.new()
 	_finger.size = Vector2(120.0, 120.0)
 	_finger.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_finger.add_theme_stylebox_override(&"panel", UIKit.box(Color(1.0, 1.0, 1.0, 0.85), 60, ui.yellow, 8))
+	_finger.add_theme_stylebox_override(&"panel", UIKit.box(Color(1.0, 1.0, 1.0, 0.85), 60, ui.accent, 8))
 	add_child(_finger)
 
 

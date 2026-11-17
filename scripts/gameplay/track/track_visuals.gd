@@ -1,179 +1,231 @@
-## Builds the static look of a chunk: one merged track mesh shared by all chunks (2 draw calls)
-## and the per-chunk MultiMesh of side buildings.
+## Builds the static look of a chunk: one merged stone-path track mesh shared by all chunks
+## (1 draw call; the ground style is per chunk through instance uniforms) and the per-chunk decor
+## MultiMeshes (FloraLibrary.SLOT_COUNT of them, one per decor slot). Tunnels and bridges are
+## built by TrackFeatures.
 class_name TrackVisuals
 extends RefCounted
 
+## Instances per decor slot MultiMesh.
 const DECOR_CAPACITY: int = 24
-## Track palette: deep violet bed, purple-grey ties, dark rail bodies under glowing neon tops
-## (matches the key art: cyan rails, magenta lane dashes and edges on a violet night track).
-const GROUND_COLOR: Color = Color(0.075, 0.04, 0.14)
-const SIDE_COLOR: Color = Color(0.035, 0.018, 0.075)
-const TIE_COLOR: Color = Color(0.11, 0.07, 0.16)
-const RAIL_COLOR: Color = Color(0.16, 0.15, 0.26)
-const POLE_COLOR: Color = Color(0.11, 0.08, 0.18)
-## Emission energy of the neon rail tops (biome accent) and of the magenta strips (accent 2).
-const RAIL_GLOW_ENERGY: float = 1.9
-const STRIP_GLOW_ENERGY: float = 1.7
+## Flagstone path: half width, top height and the bevel that rounds its edge into the earth.
+const PATH_HALF: float = 0.8
+const PATH_TOP: float = 0.045
+const PATH_BEVEL: float = 0.07
+## Ground columns beyond the outer path edges (metres from the track centre).
+const OUTER_X: Array[float] = [3.25, 3.9, 4.8, 6.0, 7.6, 9.6, 12.2, 15.5, 20.0, 26.0, 34.0, 45.0, 60.0]
+const GROUND_ROWS: int = 15
+## Pale path stone (sRGB), tinted per style by the track shader.
+const STONE_COLOR: Color = Color(0.63, 0.59, 0.53)
+const TUFT_BASE: Color = Color(0.2, 0.42, 0.14)
+const TUFT_TIP: Color = Color(0.44, 0.68, 0.26)
 
 static var _track_mesh: ArrayMesh = null
-static var _tunnel_mesh: ArrayMesh = null
-static var _bridge_mesh: ArrayMesh = null
+static var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 ## Track features a chunk can carry (TrackChunk.set_feature).
 enum Feature { NONE, TUNNEL, BRIDGE }
-## Tunnel roof height: above the jetpack flight line and the camera while flying.
-const TUNNEL_HEIGHT: float = 9.5
-const TUNNEL_COLOR: Color = Color(0.045, 0.05, 0.1)
-const BRIDGE_COLOR: Color = Color(0.12, 0.13, 0.2)
-static var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+## Cave roof height at the centre: above the jetpack flight line and the camera while flying.
+const TUNNEL_HEIGHT: float = 10.0
 
 
-## The merged static mesh of one chunk: bed, rail bodies, ties, lamp posts (surface 0, vertex
-## coloured), neon rail tops and lamp heads in the biome accent (surface 1), and edge strips and
-## lane dashes in the second accent (surface 2). 3 draw calls, shared by every chunk.
+## The merged static mesh of one chunk: three flagstone paths with bevelled edges, earth and grass
+## between and beside them, rolling terrain further out, border stones along the outer edges,
+## pebbles and grass tufts. One surface, one material (track_ground.gdshader).
 static func track_mesh(cfg: GameConfig) -> ArrayMesh:
 	if _track_mesh != null:
 		return _track_mesh
+	FloraLibrary.prewarm()
 	var length: float = cfg.chunk_length
-	var half_bed: float = cfg.lane_width * float(cfg.lane_count) * 0.5 + 0.6
-	var solid: SurfaceTool = SurfaceTool.new()
-	solid.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var glow: SurfaceTool = SurfaceTool.new()
-	glow.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var glow2: SurfaceTool = SurfaceTool.new()
-	glow2.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var mid_z: float = -length * 0.5
-	MeshLib.add_box(solid, Vector3(0.0, -0.1, mid_z), Vector3(half_bed * 2.0, 0.2, length), GROUND_COLOR)
-	MeshLib.add_box(solid, Vector3(0.0, -0.3, mid_z), Vector3(90.0, 0.2, length), SIDE_COLOR)
+	var st: SurfaceTool = NatureMesh.begin()
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 4242
+	var outer_edge: float = cfg.lane_x(cfg.lane_count - 1) + PATH_HALF + PATH_BEVEL
+	# Flagstone paths (tag 1).
+	var path_rows: int = 20
 	for lane in range(cfg.lane_count):
-		var x: float = cfg.lane_x(lane)
-		for side: float in [-0.55, 0.55]:
-			MeshLib.add_box(solid, Vector3(x + side, 0.05, mid_z), Vector3(0.1, 0.1, length), RAIL_COLOR)
-			MeshLib.add_box(glow, Vector3(x + side, 0.115, mid_z), Vector3(0.07, 0.03, length))
-		var ties: int = int(length / 1.5)
-		for i in range(ties):
-			MeshLib.add_box(solid, Vector3(x, 0.02, -(float(i) + 0.5) * 1.5), Vector3(1.55, 0.05, 0.34), TIE_COLOR)
+		var cx: float = cfg.lane_x(lane)
+		for i in range(path_rows):
+			var z0: float = -length * float(i) / float(path_rows)
+			var z1: float = -length * float(i + 1) / float(path_rows)
+			NatureMesh.quad(st, Vector3(cx - PATH_HALF, PATH_TOP, z0), Vector3(cx + PATH_HALF, PATH_TOP, z0),
+					Vector3(cx + PATH_HALF, PATH_TOP, z1), Vector3(cx - PATH_HALF, PATH_TOP, z1),
+					Color(1, 1, 1, 1), 1.0, Vector3.UP)
+			for side: float in [-1.0, 1.0]:
+				var a: float = cx + side * PATH_HALF
+				var b: float = cx + side * (PATH_HALF + PATH_BEVEL)
+				var n: Vector3 = Vector3(side * 0.55, 1.0, 0.0).normalized()
+				NatureMesh.quad(st, Vector3(a, PATH_TOP, z0), Vector3(b, 0.0, z0), Vector3(b, 0.0, z1),
+						Vector3(a, PATH_TOP, z1), Color(1, 1, 1, 0.85), 1.0, n)
+	# Ground (tag 0): strips between the paths, then columns out to the hills.
+	var xs: Array[float] = []
+	for i in range(OUTER_X.size() - 1, -1, -1):
+		xs.append(-OUTER_X[i])
+	xs.append(-outer_edge)
+	for lane in range(cfg.lane_count - 1):
+		var mid: float = (cfg.lane_x(lane) + cfg.lane_x(lane + 1)) * 0.5
+		var half_gap: float = cfg.lane_width * 0.5 - PATH_HALF - PATH_BEVEL
+		xs.append(mid - half_gap)
+		xs.append(mid + half_gap)
+	xs.append(outer_edge)
+	for x: float in OUTER_X:
+		xs.append(x)
+	for i in range(xs.size() - 1):
+		var xa: float = xs[i]
+		var xb: float = xs[i + 1]
+		# Skip the spans covered by a path.
+		if _inside_path(cfg, (xa + xb) * 0.5):
+			continue
+		for r in range(GROUND_ROWS):
+			var z0: float = -length * float(r) / float(GROUND_ROWS)
+			var z1: float = -length * float(r + 1) / float(GROUND_ROWS)
+			_ground_quad(st, xa, xb, z0, z1, length)
+	# Border stones along the outer path edges (tag 2).
 	for side: float in [-1.0, 1.0]:
-		MeshLib.add_box(glow2, Vector3(side * half_bed, 0.05, mid_z), Vector3(0.16, 0.1, length))
-		for i in range(int(length / 10.0)):
-			var z: float = -(float(i) + 0.5) * 10.0
-			MeshLib.add_box(solid, Vector3(side * (half_bed + 0.9), 2.6, z), Vector3(0.14, 5.2, 0.14), POLE_COLOR)
-			MeshLib.add_box(solid, Vector3(side * (half_bed + 0.55), 5.2, z), Vector3(0.9, 0.1, 0.14), POLE_COLOR)
-			MeshLib.add_box(glow, Vector3(side * (half_bed + 0.25), 5.1, z), Vector3(0.5, 0.1, 0.3))
-	for boundary in range(1, cfg.lane_count):
-		var bx: float = cfg.lane_x(boundary) - cfg.lane_width * 0.5
-		for i in range(int(length / 3.0)):
-			MeshLib.add_box(glow2, Vector3(bx, 0.015, -(float(i) + 0.5) * 3.0), Vector3(0.08, 0.03, 1.3))
-	_track_mesh = ArrayMesh.new()
-	solid.commit(_track_mesh)
-	glow.commit(_track_mesh)
-	glow2.commit(_track_mesh)
-	_track_mesh.surface_set_material(0, Mats.lit(Color.WHITE))
-	_track_mesh.surface_set_material(1, Mats.lit(Color.BLACK, Color.WHITE, RAIL_GLOW_ENERGY, 1.0))
-	_track_mesh.surface_set_material(2, Mats.lit(Color.BLACK, Color.WHITE, STRIP_GLOW_ENERGY, 2.0))
+		var z: float = -0.2
+		while z > -length + 0.2:
+			if rng.randf() > 0.08:
+				var rx: float = rng.randf_range(0.14, 0.22)
+				var ry: float = rng.randf_range(0.08, 0.13)
+				var at: Vector3 = Vector3(side * (outer_edge + rx * 0.45 + rng.randf_range(-0.03, 0.05)), 0.02, z)
+				var col: Color = NatureMesh.shade(STONE_COLOR, rng.randf_range(0.82, 1.08))
+				NatureMesh.rock(st, at, Vector3(rx, ry, rng.randf_range(0.14, 0.2)), rng, col, 0, 0.2, 0.45,
+						Color(0, 0, 0, 0), 2.0, 0.0, rng.randf() * TAU)
+			z -= rng.randf_range(0.36, 0.48)
+	# Grass tufts and pebbles on the strips between the paths.
+	for lane in range(cfg.lane_count - 1):
+		var mid: float = (cfg.lane_x(lane) + cfg.lane_x(lane + 1)) * 0.5
+		var z: float = -rng.randf_range(0.1, 0.5)
+		while z > -length + 0.2:
+			var at: Vector3 = Vector3(mid + rng.randf_range(-0.08, 0.08), 0.0, z)
+			if rng.randf() < 0.82:
+				NatureMesh.tuft(st, at, rng.randf_range(0.1, 0.2), 0.08, 4, TUFT_BASE, TUFT_TIP, rng, 3.0)
+			else:
+				NatureMesh.rock(st, at + Vector3(0.0, 0.01, 0.0), Vector3(0.07, 0.04, 0.06), rng,
+						NatureMesh.shade(STONE_COLOR, rng.randf_range(0.75, 1.0)), 0, 0.25, 0.4,
+						Color(0, 0, 0, 0), 2.0)
+			z -= rng.randf_range(0.45, 0.8)
+	# Verges: pebbles and taller tufts.
+	for side: float in [-1.0, 1.0]:
+		for i in range(34):
+			var x: float = side * rng.randf_range(outer_edge + 0.35, 6.5)
+			var z: float = -rng.randf_range(0.2, length - 0.2)
+			var s: float = rng.randf_range(0.05, 0.16) * (1.0 + 0.4 * (absf(x) - outer_edge) / 3.0)
+			NatureMesh.rock(st, Vector3(x, 0.0, z), Vector3(s, s * 0.6, s * 0.9), rng,
+					NatureMesh.shade(STONE_COLOR, rng.randf_range(0.7, 1.0)), 0, 0.25, 0.4,
+					Color(0, 0, 0, 0), 2.0, 0.0, rng.randf() * TAU)
+		for i in range(46):
+			var x: float = side * rng.randf_range(outer_edge + 0.3, 6.2)
+			var z: float = -rng.randf_range(0.2, length - 0.2)
+			NatureMesh.tuft(st, Vector3(x, 0.0, z), rng.randf_range(0.18, 0.36), 0.12, 5,
+					TUFT_BASE, TUFT_TIP, rng, 3.0)
+	_track_mesh = NatureMesh.commit(st)
+	_track_mesh.surface_set_material(0, Mats.track_ground(cfg))
 	return _track_mesh
 
 
-## Creates the (empty) decor MultiMesh for a chunk.
+static func _inside_path(cfg: GameConfig, x: float) -> bool:
+	for lane in range(cfg.lane_count):
+		if absf(x - cfg.lane_x(lane)) < PATH_HALF + PATH_BEVEL - 0.001:
+			return true
+	return false
+
+
+static func _ground_quad(st: SurfaceTool, xa: float, xb: float, z0: float, z1: float, length: float) -> void:
+	var p00: Vector3 = Vector3(xa, terrain_height(xa, z0, length), z0)
+	var p10: Vector3 = Vector3(xb, terrain_height(xb, z0, length), z0)
+	var p11: Vector3 = Vector3(xb, terrain_height(xb, z1, length), z1)
+	var p01: Vector3 = Vector3(xa, terrain_height(xa, z1, length), z1)
+	var n00: Vector3 = terrain_normal(xa, z0, length)
+	var n10: Vector3 = terrain_normal(xb, z0, length)
+	var n11: Vector3 = terrain_normal(xb, z1, length)
+	var n01: Vector3 = terrain_normal(xa, z1, length)
+	var c: Color = Color(1, 1, 1, 1)
+	NatureMesh.tri_smooth(st, p00, p10, p11, n00, n10, n11, c, c, c, 0.0, 0.0, 0.0, 0.0)
+	NatureMesh.tri_smooth(st, p00, p11, p01, n00, n11, n01, c, c, c, 0.0, 0.0, 0.0, 0.0)
+
+
+## Ground height of the shared terrain at chunk-local (x, z): flat near the track, rising into
+## rolling hills further out. Periodic along z with the chunk length (seamless joins).
+static func terrain_height(x: float, z: float, length: float = 30.0) -> float:
+	var ax: float = absf(x)
+	if ax <= 4.6:
+		return 0.0
+	var side: float = 0.0 if x < 0.0 else 1.7
+	var w: float = TAU / length
+	var wave: float = 0.55 + 0.25 * sin(z * w + side) + 0.2 * sin(z * w * 2.0 + side * 2.3 + ax * 0.15)
+	var rise: float = smoothstep(4.6, 42.0, ax)
+	return rise * rise * (2.5 + 5.5 * wave)
+
+
+## Terrain normal (finite differences of terrain_height).
+static func terrain_normal(x: float, z: float, length: float = 30.0) -> Vector3:
+	var e: float = 0.25
+	var dx: float = terrain_height(x + e, z, length) - terrain_height(x - e, z, length)
+	var dz: float = terrain_height(x, z + e, length) - terrain_height(x, z - e, length)
+	return Vector3(-dx / (2.0 * e), 1.0, -dz / (2.0 * e)).normalized()
+
+
+## Creates the (empty) decor MultiMesh of slot 0 (kept for callers of the old single-slot API).
 static func new_decor_multimesh() -> MultiMesh:
+	return new_decor_slot(0)
+
+
+## Creates the (empty) MultiMesh of one decor slot.
+static func new_decor_slot(slot: int) -> MultiMesh:
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
-	mm.mesh = MeshLib.box()
+	mm.mesh = FloraLibrary.mesh(0, slot)
 	mm.instance_count = DECOR_CAPACITY
 	mm.visible_instance_count = 0
 	return mm
 
 
-## Fills a decor MultiMesh. decor_set: 0 towers, 1 warehouses, 2 pylons and tanks.
+## Fills slot 0 of a decor set (old single-slot API; TrackChunk fills every slot).
 static func fill_decor(mm: MultiMesh, decor_set: int, decor_seed: int, per_side: int,
 		cfg: GameConfig) -> void:
-	_rng.seed = decor_seed
+	fill_decor_slot(mm, 0, decor_set, decor_seed, per_side, cfg)
+
+
+## Fills one decor slot with the props of a biome style: out of the lanes, random yaw and scale,
+## standing on the terrain. decor_set = BiomeDef.decor_set (the style index).
+static func fill_decor_slot(mm: MultiMesh, slot: int, decor_set: int, decor_seed: int, per_side: int,
+		cfg: GameConfig) -> void:
+	var style: int = clampi(decor_set, 0, BiomeStyle.COUNT - 1)
+	mm.mesh = FloraLibrary.mesh(style, slot)
+	_rng.seed = decor_seed * 7 + slot * 1013
+	var row: Array = FloraLibrary.placement(style, slot)
+	var x_min: float = float(row[0])
+	var x_max: float = float(row[1])
+	var s_min: float = float(row[2])
+	var s_max: float = float(row[3])
+	var per: int = clampi(roundi(float(per_side) * float(row[4])), 1, int(DECOR_CAPACITY * 0.5))
+	var sink: float = float(row[5])
+	var length: float = cfg.chunk_length
+	var slot_len: float = length / float(per)
 	var count: int = 0
-	var slot: float = cfg.chunk_length / float(per_side)
 	for side: float in [-1.0, 1.0]:
-		for i in range(per_side):
+		for i in range(per):
 			if count >= DECOR_CAPACITY:
 				break
-			var w: float = _rng.randf_range(4.0, 8.0)
-			var h: float = _rng.randf_range(10.0, 34.0)
-			var d: float = _rng.randf_range(slot * 0.55, slot * 0.9)
-			if decor_set == 1:
-				w = _rng.randf_range(7.0, 12.0)
-				h = _rng.randf_range(5.0, 11.0)
-			elif decor_set == 2:
-				w = _rng.randf_range(1.2, 3.5)
-				h = _rng.randf_range(14.0, 40.0)
-				d = w
-			var x: float = side * (_rng.randf_range(9.0, 15.0) + w * 0.5)
-			var z: float = -(float(i) + 0.5) * slot + _rng.randf_range(-1.0, 1.0)
-			var basis: Basis = Basis().scaled(Vector3(w, h, d))
-			mm.set_instance_transform(count, Transform3D(basis, Vector3(x, h * 0.5 - 0.3, z)))
-			var shade: float = _rng.randf_range(0.7, 1.4)
-			mm.set_instance_color(count, Color(shade, shade, shade * 1.1))
+			var s: float = _rng.randf_range(s_min, s_max)
+			var x: float = side * _rng.randf_range(x_min, x_max)
+			var z: float = -(float(i) + _rng.randf_range(0.15, 0.85)) * slot_len
+			var y: float = terrain_height(x, z, length) - sink * s
+			var basis: Basis = Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3(s, s, s))
+			mm.set_instance_transform(count, Transform3D(basis, Vector3(x, y, z)))
+			var k: float = _rng.randf_range(0.88, 1.1)
+			var hue: float = _rng.randf_range(-0.04, 0.04)
+			mm.set_instance_color(count, Color(k * (1.0 + hue), k, k * (1.0 - hue), 1.0))
 			count += 1
 	mm.visible_instance_count = count
 
 
-## A tunnel section filling one chunk: walls, roof, ribs every 7.5 m, glowing roof strips and rib
-## lights (2 draw calls, shared by every chunk; consecutive tunnel chunks join seamlessly).
+## A cave section filling one chunk (TrackFeatures.cave_mesh).
 static func tunnel_mesh(cfg: GameConfig) -> ArrayMesh:
-	if _tunnel_mesh != null:
-		return _tunnel_mesh
-	var length: float = cfg.chunk_length
-	var half_bed: float = cfg.lane_width * float(cfg.lane_count) * 0.5 + 0.6
-	var wall_x: float = half_bed + 2.4
-	var h: float = TUNNEL_HEIGHT
-	var mid_z: float = -length * 0.5
-	var solid: SurfaceTool = SurfaceTool.new()
-	solid.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var glow: SurfaceTool = SurfaceTool.new()
-	glow.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for side: float in [-1.0, 1.0]:
-		MeshLib.add_box(solid, Vector3(side * wall_x, h * 0.5, mid_z), Vector3(0.6, h, length), TUNNEL_COLOR)
-		MeshLib.add_box(glow, Vector3(side * (half_bed + 0.4), h - 0.45, mid_z), Vector3(0.18, 0.08, length))
-		MeshLib.add_box(glow, Vector3(side * (wall_x - 0.32), 1.2, mid_z), Vector3(0.05, 0.1, length))
-	MeshLib.add_box(solid, Vector3(0.0, h + 0.25, mid_z), Vector3(wall_x * 2.0 + 0.6, 0.5, length), TUNNEL_COLOR)
-	for i in range(4):
-		var z: float = -(float(i) + 0.5) * (length / 4.0)
-		for side: float in [-1.0, 1.0]:
-			MeshLib.add_box(solid, Vector3(side * (wall_x - 0.45), h * 0.5, z), Vector3(0.4, h, 0.7),
-					TUNNEL_COLOR.lightened(0.05))
-			MeshLib.add_box(glow, Vector3(side * (wall_x - 0.66), h * 0.5, z), Vector3(0.04, h * 0.8, 0.12))
-		MeshLib.add_box(solid, Vector3(0.0, h - 0.2, z), Vector3(wall_x * 2.0, 0.4, 0.7), TUNNEL_COLOR.lightened(0.05))
-	_tunnel_mesh = ArrayMesh.new()
-	solid.commit(_tunnel_mesh)
-	glow.commit(_tunnel_mesh)
-	_tunnel_mesh.surface_set_material(0, Mats.lit(Color.WHITE))
-	_tunnel_mesh.surface_set_material(1, Mats.lit(Color.BLACK, Color.WHITE, 1.6, 1.0))
-	return _tunnel_mesh
+	return TrackFeatures.cave_mesh(cfg)
 
 
-## A bridge section: truss railings with glowing cables on both sides and girders under the
-## deck; the chunk hides its side buildings so the open sky and skyline show (2 draw calls).
+## A log bridge section filling one chunk (TrackFeatures.bridge_mesh).
 static func bridge_mesh(cfg: GameConfig) -> ArrayMesh:
-	if _bridge_mesh != null:
-		return _bridge_mesh
-	var length: float = cfg.chunk_length
-	var half_bed: float = cfg.lane_width * float(cfg.lane_count) * 0.5 + 0.6
-	var rail_x: float = half_bed + 1.4
-	var mid_z: float = -length * 0.5
-	var solid: SurfaceTool = SurfaceTool.new()
-	solid.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var glow: SurfaceTool = SurfaceTool.new()
-	glow.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for side: float in [-1.0, 1.0]:
-		MeshLib.add_box(solid, Vector3(side * rail_x, 1.1, mid_z), Vector3(0.18, 0.12, length), BRIDGE_COLOR)
-		MeshLib.add_box(solid, Vector3(side * rail_x, 3.4, mid_z), Vector3(0.3, 0.3, length), BRIDGE_COLOR)
-		MeshLib.add_box(glow, Vector3(side * rail_x, 3.6, mid_z), Vector3(0.08, 0.06, length))
-		MeshLib.add_box(solid, Vector3(side * (rail_x - 0.4), -1.2, mid_z), Vector3(0.5, 2.2, length), BRIDGE_COLOR)
-		for i in range(6):
-			var z: float = -(float(i) + 0.5) * (length / 6.0)
-			MeshLib.add_box(solid, Vector3(side * rail_x, 1.7, z), Vector3(0.22, 3.4, 0.22), BRIDGE_COLOR)
-			MeshLib.add_box(glow, Vector3(side * rail_x, 2.3, z - length / 12.0), Vector3(0.05, 0.05, length / 6.0 * 1.05))
-	_bridge_mesh = ArrayMesh.new()
-	solid.commit(_bridge_mesh)
-	glow.commit(_bridge_mesh)
-	_bridge_mesh.surface_set_material(0, Mats.lit(Color.WHITE))
-	_bridge_mesh.surface_set_material(1, Mats.lit(Color.BLACK, Color.WHITE, 1.4, 2.0))
-	return _bridge_mesh
+	return TrackFeatures.bridge_mesh(cfg)

@@ -1,36 +1,37 @@
-# NEON RAILS
+# JURA RUSH
 
-An original 3D endless lane runner for Android / iOS (portrait) that also runs on desktop.
-Everything is generated in code: visuals from primitives and shaders, sound and music from a small
-synthesiser. Built with Godot 4 (GDScript, statically typed).
+A Mesozoic endless lane runner for Android / iOS (portrait) that also runs on desktop: a caveman in
+animal skins sprints through dinosaur country, dodging stones and herds, grabbing eggs and
+outrunning a T-Rex. Everything is generated in code: visuals from primitives and shaders, sound and
+music from a small synthesiser. Built with Godot 4 (GDScript, statically typed). Formerly the
+cyberpunk "Neon Rails"; the gameplay is unchanged, the 2 Player mode was removed.
+
+## Features
+
+* Three-lane endless runner on a treadmill world that never drifts: 53 hand-made chunk patterns,
+  every one checked by a solvability validator, adaptive difficulty, power-up pacing.
+* Four daylight biomes (Fern Valley, Red Canyon, Misty Swamp, Volcano Ridge) that cross-fade every
+  500 m, with a real sun and shadows, a painted sky dome, rock caves with torches and log bridges.
+* Dinosaurs instead of trains: Brachiosaurus herds you climb tail-first and run along, head-first
+  herd walls you must dodge, charging Triceratops, and a T-Rex that idles behind you in the menu,
+  hunts you after a stumble and catches you on the fatal hit.
+* A procedural caveman with six skins (fur colour and pattern, hair, beard, build, accessory),
+  springy secondary motion, idle actions and a pterosaur ride for the jetpack power-up.
+* Five power-ups (Magnet, Shell Shield, Ptero Ride, Score x2, Dash), eggs and amber as currencies,
+  missions, a daily run, revives, a shop with a 3D preview, settings with colour-blind and large-text
+  modes, English / Uzbek / Russian.
 
 ## Run it
 
 1. Open the folder in Godot 4.3 or newer (developed on 4.6.3) and press F5.
 2. Or from a terminal: `godot --path .`
 
-Desktop controls: A / D or arrows change lane, W / Up / Space jump, S / Down roll, Esc pause.
-Mouse drags act as swipes. Touch: swipe left / right / up / down.
+Controls: touch = swipe left / right (change lane), up (jump), down (roll; in the air: slam
+down). Desktop: A / D or arrows change lane, W / Up / Space jump, S / Down roll, Esc pause; mouse
+drags act as swipes. Gamepad works too (see `scripts/gameplay/player/input_map_setup.gd`).
 
-Debug builds: F3 overlay, F4 bot, F5 invincible, F6 coins and keys, F7 next biome, F8 power-up,
+Debug builds: F3 overlay, F4 bot, F5 invincible, F6 eggs and amber, F7 next biome, F8 power-up,
 F9 slow motion, F10 reload config, F11 speed up, F12 force next pattern.
-
-## 2 Player mode ("Neon Pursuit")
-
-Main menu > **2 PLAYERS**. Shared-screen car duel on a 5-lane night highway, a police cruiser
-tailing each car, combat power-ups (seeker rocket, bolt, pulse, EMP domes, mine, nitro, shield,
-repair). Code lives in `scripts/versus/` plus `scripts/ui/versus_intro.gd`, `versus_hud.gd`,
-`vs_icon.gd`; the single-player game is untouched (its world is detached while a match runs).
-
-| | Player 1 | Player 2 |
-|---|---|---|
-| Gas / brake | W / S | Up / Down |
-| Change lane | A / D | Left / Right |
-| Use power-up | Space (F) | Enter (Numpad 0, Right Ctrl) |
-| Switch power-up | Q (Left Shift) | Right Shift (Numpad ., /) |
-
-Hold brake while firing to shoot backwards (seeker, bolt, nitro = hard brake). Esc / P pauses.
-Testing: `-- --versus-bots`, `-- --versus-shot=out.png`, `-- --versus-soak=60 --versus-time=25`.
 
 Web build: `godot --headless --path . --export-release "Web" build/web/index.html`, then serve
 `build/web/` with any static server (single-threaded build, no special headers needed).
@@ -43,7 +44,43 @@ godot --headless --path . res://tests/track_soak_test.tscn   # 10 simulated minu
 godot --headless --path . -- --bot-soak=600                  # bot plays for 10 simulated minutes
 ```
 
-Each exits with code 0 on success.
+Each exits with code 0 on success. Add `-- --only=<text>` to the test runner to run only the test
+methods whose name contains `<text>`.
+
+## Dev flags
+
+All go after `--` on the command line (`godot --path . -- <flags>`); none is used by the game.
+
+| Flag | What it does |
+|---|---|
+| `--bot` | start with the test bot playing |
+| `--bot-soak=N` | headless bot soak for N simulated seconds, exit code 0 / 1 |
+| `--ui-shots=<dir>` | screenshot every menu screen (menu in en / uz / ru, every shop skin, flow screens), then quit |
+| `--shot=<path>.png` | automated run: `_menu`, `_run1`, `_run2`, `_pause` screenshots, then quit |
+| `--shot-interval=S` | seconds between the frames of every burst below (defaults: shot 1.5, menu 0.9, start 0.25) |
+| `--shot-burst=N` | N more gameplay frames after `_run2` |
+| `--menu-burst=N` | N more menu frames before PLAY |
+| `--start-burst=N` | N frames right after PLAY (camera swing, T-Rex retreat) |
+| `--force-powerup=ID` | activate a power-up (jetpack, dash, magnet, shield, multiplier) 6 s after PLAY |
+| `--action-shots` | lane change, jump and roll on the empty runway, frames mid-move |
+| `--shot-scenario=menu` | menu idle / roar frames, then the run start |
+| `--shot-scenario=chase` | forced stumble (T-Rex chase frames), then a crash (catch frames) |
+| `--shot-pattern=a,b,...` | force these chunk patterns, round robin (each must validate after the previous chunk; an `empty` in between helps) |
+| `--biome=N` | runs start in biome N (0 Fern Valley, 1 Red Canyon, 2 Misty Swamp, 3 Volcano Ridge) |
+| `--feature=tunnel` / `--feature=bridge` | that track feature (cave / bridge) comes round again and again |
+| `--quality=N` | quality preset for automated runs (0 Low .. 2 High) |
+| `--no-shadows` | sun shadows off at every quality (performance comparison) |
+| `--env-lab=<dir>` | deterministic environment dioramas from the run camera, then quit; with `--lab-only=a,b`, `--lab-style=N`, `--lab-colorblind`, `--lab-perf` |
+| `--perf-log` | print FPS, CPU / GPU frame time and draw calls every 2 s |
+
+Labs (run the scene; without flags they are interactive turntables):
+
+| Scene | Flags |
+|---|---|
+| `res://scenes/vfx/creature_lab.tscn` | `--lab-shot=<dir>` (every creature and pose), `--lab-views=<dir>` (gameplay framings), `--lab-only=a,b` |
+| `res://scenes/vfx/runner_lab.tscn` | `--lab-shots=<dir>` (skins, faces, poses, idle actions, pterosaur ride, triangle counts) |
+
+Use a portrait resolution for screenshots, e.g. `godot --path . --resolution 540x960 -- --shot=...`.
 
 ## Project layout
 
@@ -71,22 +108,42 @@ resources can be listed in `game_config.tres > extra_chunk_defs`. To rename the 
 
 | What | How |
 |---|---|
-| Meshes | Put `assets/meshes/<id>.glb` (or `.tscn`). Ids: `player`, `chaser`, and every obstacle id (`train_long`, `train_short`, `train_moving`, `barrier_low`, `barrier_high`, `barrier_full`, `ramp`, `gap`, `hazard_light`). `VisualProvider` uses the file automatically. |
+| Meshes | Put `assets/meshes/<id>.glb` (or `.tscn`). Ids: `player`, `chaser`, and every obstacle id in the table below. `VisualProvider` uses the file automatically. |
 | Sounds | Put `assets/audio/<id>.ogg` (ids in `scripts/audio/sfx_library.gd`), or fill `config/audio_config.tres` (an `AudioConfig` resource). |
 | Music | Set `music_menu`, `music_drums`, `music_bass`, `music_lead` in an `AudioConfig` saved as `config/audio_config.tres`. Layers must be loops of equal length. |
 | Font / UI colours | Edit `config/ui_theme.tres`. |
 
-Conventions for meshes: 1 unit = 1 m, +Y up, forward = -Z, pivot at ground centre. Budgets:
-player and chaser <= 3,000 triangles, obstacles <= 800, decor <= 300. Collision sizes come from
-the `ObstacleDef`, not the mesh. Replacement meshes do not get the curved-world bend unless their
-materials use `assets/shaders/world_lit.gdshader`.
+Conventions for meshes: 1 unit = 1 m, +Y up, forward = -Z, pivot at ground centre. Budgets of
+the procedural art (keep replacements in the same range): caveman ~4k triangles with hair and
+accessory, T-Rex <= 8k, Brachiosaurus <= 6k per animal, Triceratops <= 5k, stone obstacles <= 800,
+decor <= 1.5k. Collision sizes come from the `ObstacleDef`, not the mesh. Replacement meshes do not
+get the curved-world bend unless their materials use `assets/shaders/world_lit.gdshader`.
+
+## Assets and obstacles
+
+Content ids kept their original (Neon Rails) names so saves, patterns and configs stay compatible;
+only the visuals changed. The `train_*` ids are dinosaurs:
+
+| Id | Gameplay | Jura Rush visual |
+|---|---|---|
+| `train_long`, `train_short` | static train: crash head-on, stumble on the side, walkable roof at 3 m | Brachiosaurus herd. Tail-first when a ramp leads in (the nearest tail IS the ramp, you run along the backs); otherwise head-first, a wall of sauropods facing you |
+| `train_moving` | oncoming train with a telegraph | Triceratops stampede: paws, snorts and shakes its head (telegraph), then gallops at you |
+| `ramp` | ramp up to a roof | the Brachiosaurus tail when paired with a herd, else a mossy rock slope |
+| `barrier_low` | jump over | knee-high pile of boulders |
+| `barrier_high` | roll under | stone dolmen (capstone on two standing stones) |
+| `barrier_full` | change lane, lethal | wall of menhirs with ochre warning bands |
+| `gap` | jump, falling in is a crash | ravine with rock strata, lava glow in Volcano Ridge |
+| `hazard_light` | harmless telegraph | flickering torch between the lanes |
+| coins / keys | currencies | eggs / amber |
+| `jetpack` power-up | flight above the obstacles | Ptero Ride: a pterosaur carries the caveman |
+| `player`, `chaser` | runner, chaser | the caveman (six skins), the T-Rex |
 
 ## Build for Android
 
 1. Editor > Manage Export Templates: install templates for your Godot version.
 2. Editor Settings > Export > Android: set the Android SDK path and Java SDK path (JDK 17).
 3. Project > Export: the `Android` (APK) and `Android AAB` presets are in `export_presets.cfg`.
-   Package `com.example.neonrails`, min SDK 24, arm64-v8a, permission VIBRATE only.
+   Package `com.example.jurarush` (placeholder), min SDK 24, arm64-v8a, permission VIBRATE only.
    Change the package name and set a release keystore before publishing.
 4. The AAB preset needs Project > Install Android Build Template.
 
@@ -98,12 +155,14 @@ Xcode project, and enable "Requires full screen" with portrait only.
 
 Version: edit `version.cfg`, then run
 `godot --headless --path . --script res://tools/apply_version.gd`.
-Icon and splash: `godot --headless --path . --script res://tools/generate_icon.gd`.
+Icon and splash: `godot --path . --script res://tools/generate_icon.gd` (draws with the real
+renderer, so no `--headless`; a window opens for a second).
 
 ## Known limitations
 
 * No real-money code: `monetization_stub.gd` simulates rewarded ads, `analytics_stub.gd` only logs.
-* Gameplay steps at 60 Hz; on 120 Hz screens motion is not interpolated.
+* The frame rate is capped at 60 FPS (`Engine.max_fps`); the simulation is sub-stepped per rendered
+  frame (at most 1/60 s per step), so lifting the cap needs no interpolation.
 * Collision uses a deterministic box test instead of physics areas (see ARCHITECTURE.md, section 5).
 * Consumables (head start, score booster) are used automatically at the start of the next run.
 * Not yet run on a physical phone: performance numbers are budgets, not device measurements.

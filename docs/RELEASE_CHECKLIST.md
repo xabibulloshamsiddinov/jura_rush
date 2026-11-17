@@ -7,7 +7,7 @@
 - [ ] Manual QA checklist completed on at least one low-end and one current phone
 - [ ] No errors or warnings in the Godot output panel during a full session
 - [ ] `GameConfig.GAME_TITLE` and `application/config/name` are final
-- [ ] Package name changed from `com.example.neonrails` in both export presets
+- [ ] Package name changed from the placeholder `com.example.jurarush` in both export presets
 - [ ] Icon and splash regenerated or replaced (`assets/textures/`)
 
 ## Android export settings (Project > Export)

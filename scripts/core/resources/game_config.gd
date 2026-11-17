@@ -4,14 +4,15 @@ extends Resource
 
 const PATH: String = "res://config/game_config.tres"
 ## The one place the game title lives.
-const GAME_TITLE: String = "NEON RAILS"
+const GAME_TITLE: String = "JURA RUSH"
 
 @export_group("Speed")
 @export var start_speed: float = 14.0
 @export var max_speed: float = 34.0
 @export var speed_ramp_time: float = 180.0
 @export var speed_smoothing: float = 1.5
-@export var menu_scroll_speed: float = 5.0
+## World scroll speed behind the menu (0 = the caveman stands still in front of the camera).
+@export var menu_scroll_speed: float = 0.0
 @export var difficulty_curve: Curve
 @export var difficulty_strategy: StringName = &"adaptive"
 @export var spawn_strategy: StringName = &"pattern"
@@ -34,7 +35,16 @@ const GAME_TITLE: String = "NEON RAILS"
 @export var moving_train_speed_factor: float = 0.5
 
 @export_group("Player")
-@export var lane_change_time: float = 0.12
+## Lane change duration at start speed (shortened toward max speed by speed_scale_lane).
+@export var lane_change_time: float = 0.16
+## Lane-change speed curve v(u) = (1 - exp(-u / ramp)) * (1 - u)^settle (see Player.lane_ease):
+## ramp = share of the move spent speeding up, settle = softness of the arrival.
+@export var lane_ease_ramp: float = 0.05
+@export var lane_ease_settle: float = 4.0
+## Height of the small hop while changing lanes on the ground (metres).
+@export var lane_hop_height: float = 0.06
+## Peak body lean while changing lanes (radians); the visual springs toward it.
+@export var lane_lean: float = 0.26
 @export var jump_height: float = 2.2
 @export var jump_time: float = 0.62
 @export var roll_time: float = 0.55
@@ -48,7 +58,7 @@ const GAME_TITLE: String = "NEON RAILS"
 @export var player_half_width: float = 0.35
 @export var player_height: float = 1.7
 @export var roll_height: float = 0.8
-@export var speed_scale_lane: float = 0.8
+@export var speed_scale_lane: float = 0.8125
 @export var speed_scale_jump: float = 0.82
 @export var speed_scale_roll: float = 0.85
 @export var hit_stop_time: float = 0.08

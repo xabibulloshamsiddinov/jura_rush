@@ -23,7 +23,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_mesh.clear_surfaces()
 
 
-func _physics_process(_delta: float) -> void:
+func _process(_delta: float) -> void:
 	if not visible or _track.chunks.is_empty():
 		return
 	var length: float = _cfg.chunk_length

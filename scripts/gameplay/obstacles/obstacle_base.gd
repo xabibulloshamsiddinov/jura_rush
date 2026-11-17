@@ -24,6 +24,9 @@ var disabled: bool = false
 var needs_tick: bool = false
 ## True when it changes the ground height (roofs, ramps, gaps).
 var shapes_ground: bool = false
+## How far the visual reaches beyond the far end (-Z) of the collision box, in metres (necks,
+## tails). TrackManager hides a passed obstacle only once this part is behind the runner too.
+var far_overhang: float = 0.0
 
 var _visual: Node3D = null
 

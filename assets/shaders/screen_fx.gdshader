@@ -1,12 +1,13 @@
-// Full-screen overlay: speed lines at the edges, vignette and a colour flash. No screen read.
+// Full-screen overlay: subtle warm speed lines at the edges, vignette and a soft colour flash.
+// No screen read.
 shader_type canvas_item;
 
 uniform float speed_lines = 0.0;
-uniform float vignette = 0.35;
-uniform vec4 line_color : source_color = vec4(0.8, 0.95, 1.0, 1.0);
+uniform float vignette = 0.24;
+uniform vec4 line_color : source_color = vec4(1.0, 0.97, 0.9, 1.0);
 uniform vec4 flash_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform float flash = 0.0;
-uniform vec4 edge_color : source_color = vec4(1.0, 0.1, 0.15, 1.0);
+uniform vec4 edge_color : source_color = vec4(0.85, 0.2, 0.08, 1.0);
 uniform float edge = 0.0;
 
 float hash11(float p) {
@@ -23,8 +24,8 @@ void fragment() {
 	float lines = streak * smoothstep(0.38, 0.75, r) * speed_lines;
 	float vig = smoothstep(0.35, 0.95, r);
 	vec3 col = line_color.rgb * lines;
-	float alpha = lines * 0.55;
-	col = mix(col, vec3(0.0), vig * vignette * (1.0 - lines));
+	float alpha = lines * 0.35;
+	col = mix(col, vec3(0.1, 0.07, 0.04), vig * vignette * (1.0 - lines));
 	alpha = max(alpha, vig * vignette);
 	col = mix(col, edge_color.rgb, vig * edge);
 	alpha = max(alpha, vig * edge);

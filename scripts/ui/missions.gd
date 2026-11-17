@@ -17,11 +17,10 @@ func build() -> void:
 	add_child(wrap)
 	var top: HBoxContainer = UIKit.hbox(20)
 	column.add_child(top)
-	var back: UIButton = UIKit.button("<", &"ghost", 120.0)
-	back.feedback = &"back"
+	var back: UIButton = UIKit.back_button()
 	back.pressed.connect(func() -> void: SceneRouter.back())
 	top.add_child(back)
-	var title: Label = UIKit.label(tr_key(&"missions.title"), ui.size_h1, ui.cyan)
+	var title: Label = UIKit.label(tr_key(&"missions.title"), ui.size_h1, ui.accent)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
 	var balance: Control = Control.new()
@@ -79,7 +78,7 @@ func _add_row(row: Dictionary, delay: float) -> void:
 	var ui: UITheme = UITheme.current()
 	var def: MissionDef = row["def"]
 	var done: bool = bool(row["done"])
-	var card: PanelContainer = UIKit.panel(true, ui.yellow if done else Color.TRANSPARENT)
+	var card: PanelContainer = UIKit.panel(true, ui.accent if done else Color.TRANSPARENT)
 	var column: VBoxContainer = UIKit.vbox(8)
 	card.add_child(column)
 	var head: HBoxContainer = UIKit.hbox(12)
@@ -90,12 +89,12 @@ func _add_row(row: Dictionary, delay: float) -> void:
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	head.add_child(text)
 	if done:
-		head.add_child(UIKit.label(tr_key(&"missions.done"), ui.size_small, ui.yellow))
+		head.add_child(UIKit.label(tr_key(&"missions.done"), ui.size_small, ui.accent))
 	else:
-		var reward: CoinCounter = CoinCounter.new(ui.size_small, ui.yellow)
+		var reward: CoinCounter = CoinCounter.new(ui.size_small, ui.accent)
 		reward.set_amount(def.reward_coins)
 		head.add_child(reward)
-	var bar: ProgressBar = UIKit.progress(0.0, float(row["target"]), ui.yellow if done else ui.cyan)
+	var bar: ProgressBar = UIKit.progress(0.0, float(row["target"]), ui.accent if done else ui.primary)
 	column.add_child(bar)
 	column.add_child(UIKit.label("%s / %s" % [MathUtils.group_digits(int(row["value"])),
 			MathUtils.group_digits(int(row["target"]))], ui.size_small, ui.text_dim,

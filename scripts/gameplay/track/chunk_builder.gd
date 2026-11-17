@@ -44,10 +44,13 @@ func begin(chunk: TrackChunk, plan: SpawnStrategy.Plan, arrival_speed: float) ->
 
 
 ## Step 1: obstacles. Vertical runs of trains, ramps and gaps merge into one node each.
+## A ramp directly in front of a roof train in the same lane is paired with it: the herd stands
+## tail-first and its tail is the ramp (Train.set_ramp_lead / Ramp.set_paired).
 func add_obstacles() -> ChunkBuilder:
 	var grid: PackedInt32Array = _plan.grid
 	for lane in range(_lanes):
 		var row: int = 0
+		var last_ramp: Ramp = null
 		while row < _rows:
 			var t: int = grid[row * _lanes + lane] & Cell.TYPE_MASK
 			if not OBSTACLE_IDS.has(t):
@@ -63,8 +66,41 @@ func add_obstacles() -> ChunkBuilder:
 					z_center, float(run) * _rl)
 			if node != null:
 				_chunk.add_obstacle(node)
+				if node is Train and Cell.is_roof_train(t):
+					var train: Train = node as Train
+					if lane > 0 and lane < _lanes - 1:
+						train.set_neck_side(middle_neck_side(grid, _lanes, row, run))
+					if ramp_leads_train(grid, _lanes, row, lane) and last_ramp != null:
+						train.set_ramp_lead(last_ramp.length, last_ramp.def.size.y)
+						last_ramp.set_paired(true)
+			last_ramp = node as Ramp if t == Cell.Type.RAMP_UP else null
 			row += run
 	return self
+
+
+## Orientation rule: true when the roof-train run starting at (row, lane) has a ramp right in
+## front of it in the same lane (tail-first herd); false = head-first wall.
+static func ramp_leads_train(grid: PackedInt32Array, lanes: int, row: int, lane: int) -> bool:
+	if row <= 0 or not Cell.is_roof_train(grid[row * lanes + lane] & Cell.TYPE_MASK):
+		return false
+	return (grid[(row - 1) * lanes + lane] & Cell.TYPE_MASK) == Cell.Type.RAMP_UP
+
+
+## Side (-1 = left, +1 = right) a middle-lane herd curls its necks toward: the neighbouring lane
+## with fewer roof trains over the run, so heads never hang over a back someone may run on.
+static func middle_neck_side(grid: PackedInt32Array, lanes: int, row: int, run: int) -> float:
+	var left: int = 0
+	var right: int = 0
+	@warning_ignore("integer_division")
+	var rows: int = grid.size() / lanes
+	for r in range(row, mini(row + run, rows)):
+		if Cell.is_roof_train(grid[r * lanes] & Cell.TYPE_MASK):
+			left += 1
+		if Cell.is_roof_train(grid[r * lanes + lanes - 1] & Cell.TYPE_MASK):
+			right += 1
+	if left == right:
+		return 1.0 if row % 2 == 0 else -1.0
+	return 1.0 if left > right else -1.0
 
 
 ## Step 2: coins (ground lines, roof lines, jump arcs, diagonals).

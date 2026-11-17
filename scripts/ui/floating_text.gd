@@ -1,4 +1,4 @@
-## Pooled floating label ("+50 NEAR!", "+1" flying to the coin counter).
+## Pooled floating label ("+50 NEAR!", "+1" flying to the egg counter).
 class_name FloatingText
 extends Label
 
@@ -6,9 +6,9 @@ var _tween: Tween = null
 
 
 func _init() -> void:
-	add_theme_font_override(&"font", UIKit.font())
-	add_theme_color_override(&"font_outline_color", Color(0.0, 0.0, 0.0, 0.8))
-	add_theme_constant_override(&"outline_size", 8)
+	add_theme_font_override(&"font", UIKit.heading_font())
+	add_theme_color_override(&"font_outline_color", Color(UITheme.current().outline, 0.95))
+	add_theme_constant_override(&"outline_size", 10)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 

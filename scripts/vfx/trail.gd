@@ -1,5 +1,6 @@
-## TrailComponent: a ribbon drawn behind the runner. Because the world is a treadmill, trail
-## points drift toward the camera at world speed instead of the emitter moving forward.
+## TrailComponent: a flat streak drawn on the ground behind the runner. Because the world is a
+## treadmill, trail points drift toward the camera at world speed instead of the emitter moving
+## forward.
 class_name TrailComponent
 extends MeshInstance3D
 
@@ -12,10 +13,6 @@ var _width: float = 0.45
 var _length: int = 10
 var _boost: float = 0.0
 var _spacing_left: float = 0.0
-## true: the ribbon lies flat (spreads along X), a light streak on the ground behind the runner.
-## false: an upright ribbon (versus-mode cars). Seen from the chase camera an upright ribbon
-## collapses into a thin vertical line, which read as a laser beam under the runner.
-var flat: bool = false
 
 
 func _ready() -> void:
@@ -33,8 +30,8 @@ func apply_trail(def: TrailDef) -> void:
 	_width = def.width
 	_length = clampi(def.length, 2, MAX_POINTS)
 	material_override = Mats.glow(def.color, 1.6, 1.0, 0.0, true)
-	# A flat streak covers rails and coins, so it stays fainter and narrower than the upright ribbon.
-	(material_override as ShaderMaterial).set_shader_parameter(&"albedo", Color(def.color, 0.28 if flat else 0.7))
+	# A flat streak covers the track and the pickups, so it stays faint and narrow.
+	(material_override as ShaderMaterial).set_shader_parameter(&"albedo", Color(def.color, 0.28))
 
 
 ## Makes the ribbon briefly wider (lane change, dash).
@@ -77,10 +74,10 @@ func tick(delta: float, world_speed: float, emit_pos: Vector3, emitting: bool) -
 
 func _add_pair(p: Vector3, half: float, t: float) -> void:
 	var fade: Color = Color(1.0, 1.0, 1.0, 1.0 - t)
-	var w: float = half * (1.0 - t * 0.7) * (0.4 if flat else 1.0)
+	var w: float = half * (1.0 - t * 0.7) * 0.4
 	_mesh.surface_set_color(fade)
 	_mesh.surface_set_uv(Vector2(t, 0.0))
-	var offset: Vector3 = Vector3(w, 0.0, 0.0) if flat else Vector3(0.0, w, 0.0)
+	var offset: Vector3 = Vector3(w, 0.0, 0.0)
 	_mesh.surface_add_vertex(p + offset)
 	_mesh.surface_set_color(fade)
 	_mesh.surface_set_uv(Vector2(t, 1.0))

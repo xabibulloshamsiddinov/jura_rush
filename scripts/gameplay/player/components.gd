@@ -39,7 +39,8 @@ class Shield extends Node3D:
 	var _hit_flash: float = 0.0
 
 	func _ready() -> void:
-		_material = Mats.shield(Color(0.2, 0.7, 1.0))
+		var def: PowerupDef = ContentDB.powerup(&"shield")
+		_material = Mats.shield(def.color if def != null else Color(0.32, 0.76, 0.7))
 		_bubble = MeshLib.mi(MeshLib.sphere(), _material, Vector3(0.0, 0.95, 0.0), Vector3(2.3, 2.5, 2.3))
 		_bubble.visible = false
 		add_child(_bubble)

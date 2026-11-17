@@ -1,5 +1,6 @@
-## A chunk's coins: one MultiMesh, no per-coin nodes. Positions live in packed arrays and are
-## tested by PickupSystem with a single distance sweep. Spinning happens in coin.gdshader.
+## A chunk's coins, drawn as EGGS (Jura Rush): one MultiMesh, no per-egg nodes. Positions live in
+## packed arrays and are tested by PickupSystem with a single distance sweep. The turn / wobble
+## happens in coin.gdshader. Eggs cast a small real shadow when shadows are on.
 class_name CoinField
 extends MultiMeshInstance3D
 
@@ -15,7 +16,8 @@ var states: PackedByteArray = PackedByteArray()
 ## Seconds each coin has been pulled by the magnet (ease-in attraction).
 var pull_time: PackedFloat32Array = PackedFloat32Array()
 
-var _upright: Basis = Basis(Vector3.RIGHT, PI * 0.5)
+## Eggs stand upright (the egg mesh's long axis is +Y already).
+var _upright: Basis = Basis.IDENTITY
 var _hidden: Transform3D = Transform3D(Basis().scaled(Vector3.ZERO), Vector3(0.0, -50.0, 0.0))
 
 
@@ -31,6 +33,8 @@ func _init() -> void:
 	multimesh = mm
 	material_override = Mats.coin()
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if VisualTuning.EGG_SHADOWS:
+		cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	extra_cull_margin = 40.0
 	custom_aabb = AABB(Vector3(-6.0, -2.0, -40.0), Vector3(12.0, 14.0, 50.0))
 

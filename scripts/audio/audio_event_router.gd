@@ -78,7 +78,7 @@ func _on_powerup_expired(id: StringName) -> void:
 		_update_loops()
 
 
-## Oncoming train: horn and rumble from its lane ahead of the player (3D, doppler).
+## Triceratops stampede telegraph: a bellow and the rumble of hooves from its lane ahead (3D).
 func _on_train_warning(lane: int) -> void:
 	var pos: Vector3 = Vector3(_cfg.lane_x(lane), 2.0, -30.0)
 	_audio.call(&"play_3d", &"train_horn", pos)

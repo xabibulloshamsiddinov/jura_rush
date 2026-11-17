@@ -72,30 +72,36 @@ func play(id: StringName, position: Vector3, color: Color = Color.WHITE) -> void
 	if color != Color.WHITE:
 		node.color = color
 	node.restart()
+	# Compound effects (egg sparkle + warm burst, dust puff + pebbles) carry child emitters.
+	for child: Node in node.get_children():
+		var sub: CPUParticles3D = child as CPUParticles3D
+		if sub != null:
+			sub.restart()
 	_active_nodes.append(node)
 	_active_ids.append(pool)
 	_active_left.append(float(VfxFactory.LIFETIMES.get(id, 1.0)) + 0.1)
 
 
-## Expanding glow ring (shockwave, shield ripple).
+## Expanding ring (shockwave, shield ripple). additive: 1 = light (old glow), 0 = soft dusty
+## alpha ring that reads in daylight.
 func ring(position: Vector3, color: Color, from_radius: float, to_radius: float, duration: float,
-		flat: bool = true) -> void:
+		flat: bool = true, additive: float = 0.35) -> void:
 	var i: int = _free_mesh_slot()
 	var node: MeshInstance3D = _mesh_nodes[i]
 	node.mesh = _ring_mesh
 	node.position = position
 	node.rotation = Vector3.ZERO if flat else Vector3(PI * 0.5, 0.0, 0.0)
-	_start_mesh(i, color, Vector3.ONE * from_radius, Vector3.ONE * to_radius, duration)
+	_start_mesh(i, color, Vector3.ONE * from_radius, Vector3.ONE * to_radius, duration, additive)
 
 
-## Stretched light streak along the track (near-miss whoosh).
+## Stretched wind streak along the track (near-miss whoosh). Subtle: soft alpha, pale.
 func streak(position: Vector3, color: Color, length: float, duration: float) -> void:
 	var i: int = _free_mesh_slot()
 	var node: MeshInstance3D = _mesh_nodes[i]
 	node.mesh = MeshLib.box()
 	node.position = position
 	node.rotation = Vector3.ZERO
-	_start_mesh(i, color, Vector3(0.06, 1.6, length * 0.3), Vector3(0.02, 1.2, length), duration)
+	_start_mesh(i, color, Vector3(0.05, 1.4, length * 0.3), Vector3(0.015, 1.0, length), duration, 0.2)
 
 
 ## Plays a UI-space effect at a screen position (base resolution pixels).
@@ -163,7 +169,8 @@ func _free_mesh_slot() -> int:
 	return oldest
 
 
-func _start_mesh(i: int, color: Color, from: Vector3, to: Vector3, duration: float) -> void:
+func _start_mesh(i: int, color: Color, from: Vector3, to: Vector3, duration: float,
+		additive: float = 0.35) -> void:
 	_mesh_time[i] = 0.0
 	_mesh_duration[i] = maxf(duration, 0.05)
 	_mesh_from[i] = from
@@ -172,6 +179,7 @@ func _start_mesh(i: int, color: Color, from: Vector3, to: Vector3, duration: flo
 	_mesh_nodes[i].scale = from
 	_mesh_nodes[i].visible = true
 	_mesh_materials[i].set_shader_parameter(&"albedo", color)
+	_mesh_materials[i].set_shader_parameter(&"additive", additive)
 
 
 func _player() -> Node3D:
@@ -214,15 +222,15 @@ func _connect_events() -> void:
 	GameEvents.near_miss.connect(func(lane: int) -> void:
 		var pos: Vector3 = _player_pos()
 		var side: float = signf(_cfg.lane_x(lane) - pos.x)
-		streak(Vector3(pos.x + side * 0.9, 1.2, -2.0), Color(0.6, 0.9, 1.0), 7.0, 0.3))
+		streak(Vector3(pos.x + side * 0.9, 1.2, -2.0), Color(0.96, 0.93, 0.85, 0.7), 7.0, 0.3))
 	GameEvents.shield_hit.connect(func() -> void:
-		ring(_player_pos() + Vector3(0.0, 1.0, 0.0), Color(0.3, 0.75, 1.0), 0.8, 2.4, 0.35, false))
+		ring(_player_pos() + Vector3(0.0, 1.0, 0.0), Color(0.55, 0.85, 0.8), 0.8, 2.4, 0.35, false, 0.5))
 	GameEvents.shield_broken.connect(func() -> void:
 		play(&"shards", _player_pos() + Vector3(0.0, 1.0, 0.0)))
 	GameEvents.powerup_activated.connect(func(id: StringName, _d: float) -> void:
 		var def: PowerupDef = ContentDB.powerup(id)
 		var color: Color = def.color if def != null else Color.WHITE
-		play(&"burst", _player_pos() + Vector3(0.0, 1.0, 0.0), Color(color.r * 2.0, color.g * 2.0, color.b * 2.0))
+		play(&"burst", _player_pos() + Vector3(0.0, 1.0, 0.0), Color(color.r * 1.3, color.g * 1.3, color.b * 1.3, 0.85))
 		ring(_player_pos() + Vector3(0.0, 0.1, 0.0), color, 0.5, 3.0, 0.45)
 		if id == &"dash":
 			_dashing = true
@@ -233,12 +241,12 @@ func _connect_events() -> void:
 			_update_speed_lines())
 	GameEvents.obstacle_smashed.connect(func(pos: Vector3) -> void:
 		play(&"debris", pos)
-		ring(pos, Color(1.0, 0.7, 0.3), 0.4, 2.6, 0.35, false))
+		ring(pos, Color(0.78, 0.64, 0.46), 0.4, 2.6, 0.35, false, 0.0))
 	GameEvents.mystery_box_opened.connect(func(_reward: StringName, _amount: int) -> void:
-		play(&"burst", _player_pos() + Vector3(0.0, 1.2, -0.5), Color(2.4, 2.0, 0.6))
-		ring(_player_pos() + Vector3(0.0, 1.2, 0.0), Color(1.0, 0.85, 0.2), 0.3, 2.2, 0.4, false))
+		play(&"burst", _player_pos() + Vector3(0.0, 1.2, -0.5), Color(1.5, 1.05, 0.45, 0.9))
+		ring(_player_pos() + Vector3(0.0, 1.2, 0.0), Color(0.95, 0.68, 0.3), 0.3, 2.2, 0.4, false, 0.4))
 	GameEvents.biome_changed.connect(func(_id: StringName, _title: String) -> void:
-		screen.flash(Color(0.6, 0.9, 1.0), 0.35 * _strength(), 0.9))
+		screen.flash(Color(1.0, 0.95, 0.82), 0.22 * _strength(), 0.9))
 	GameEvents.speed_changed.connect(func(speed: float) -> void:
 		_speed_fraction = _cfg.speed_fraction(speed)
 		_update_speed_lines())
@@ -249,13 +257,17 @@ func _connect_events() -> void:
 		_update_speed_lines())
 
 
-## Crash: white impact flash, shockwave ring, sparks + debris, red edge, chromatic pulse.
 func _on_crash(_kind: StringName) -> void:
-	var pos: Vector3 = _player_pos() + Vector3(0.0, 1.0, 0.0)
+	crash_burst(_player_pos() + Vector3(0.0, 1.0, 0.0))
+
+
+## Crash at a world position: a dust cloud with rock debris, a dusty shock ring, a soft warm flash,
+## the danger edge and a light chromatic pulse.
+func crash_burst(pos: Vector3) -> void:
 	play(&"crash", pos)
 	play(&"debris", pos)
-	ring(pos - Vector3(0.0, 0.9, 0.0), Color(1.0, 0.9, 0.7), 0.5, 5.0, 0.5)
-	screen.flash(Color.WHITE, 0.9 * _strength(), 0.12)
+	ring(pos - Vector3(0.0, 0.9, 0.0), Color(0.8, 0.66, 0.48), 0.5, 4.5, 0.55, true, 0.0)
+	screen.flash(Color(1.0, 0.9, 0.75), 0.45 * _strength(), 0.14)
 	screen.danger_edge(1.0 * _strength())
 	if SettingsManager.quality() > 0 and not SettingsManager.reduce_effects():
-		screen.chroma_pulse(1.0)
+		screen.chroma_pulse(0.5)

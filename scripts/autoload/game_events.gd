@@ -60,20 +60,6 @@ signal achievement_unlocked(id: StringName)
 signal wallet_changed(coins: int, keys: int)
 signal item_purchased(id: StringName)
 
-# --- 2 Player versus (separate mode; the single-player flow above is untouched) ---
-## UI asks: show the versus intro / start the match / leave the mode / pause or resume / rematch.
-signal request_versus_open
-signal request_versus_start
-signal request_versus_exit
-signal request_versus_pause(paused: bool)
-signal request_versus_rematch
-## Versus gameplay reports: countdown (3..0), a big callout for one player (-1 = both),
-## a player's power-up use / hit, and the final result.
-signal versus_countdown(remaining: int)
-signal versus_callout(player: int, text: String, color: Color)
-signal versus_event(kind: StringName, player: int)
-signal versus_finished(result: Dictionary)
-
 # --- Meta ------------------------------------------------------------------
 signal settings_changed
 signal ui_feedback(kind: StringName)
