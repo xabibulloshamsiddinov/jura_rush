@@ -63,10 +63,10 @@ class Shield extends Node3D:
 			return false
 		hits_left -= 1
 		_hit_flash = 1.0
-		GameEvents.shield_hit.emit()
+		EventScope.of(self).shield_hit.emit()
 		if hits_left <= 0:
 			deactivate()
-			GameEvents.shield_broken.emit()
+			EventScope.of(self).shield_broken.emit()
 		return true
 
 	## Animates the hit ripple.

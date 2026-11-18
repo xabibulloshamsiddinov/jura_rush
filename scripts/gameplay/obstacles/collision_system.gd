@@ -45,7 +45,7 @@ func tick(step: float) -> void:
 				if o.near_flag and not o.ghost:
 					o.near_flag = false
 					o.ghost = true
-					GameEvents.near_miss.emit(o.lane)
+					player.events.near_miss.emit(o.lane)
 				continue
 			if z_near < -PLAYER_HALF_DEPTH or o.ghost:
 				continue

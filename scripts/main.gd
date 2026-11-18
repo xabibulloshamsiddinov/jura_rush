@@ -69,6 +69,8 @@ func _ready() -> void:
 	world = WORLD_SCENE.instantiate() as GameWorld
 	add_child(world)
 	move_child(world, 0)
+	# Multiplayer (desktop): phones as controllers on a split screen, next to the single-player flow.
+	add_child(PartyMode.new(world))
 	overlay.call(&"set_progress", 0.4)
 	await get_tree().process_frame
 	await AudioManager.build_async(func(p: float) -> void:

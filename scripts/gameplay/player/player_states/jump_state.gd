@@ -12,7 +12,7 @@ func enter(_prev: StringName) -> void:
 	player.slam_pending = false
 	player.vertical_speed = cfg.jump_velocity(player.speed_fraction())
 	player.visual.set_pose(PlayerVisual.Pose.JUMP)
-	GameEvents.player_jumped.emit()
+	player.events.player_jumped.emit()
 
 
 func physics_update(_delta: float) -> void:

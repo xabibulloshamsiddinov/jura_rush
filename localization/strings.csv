@@ -151,3 +151,69 @@ toast.set,Multiplier is now x{n},Ko'paytiruvchi endi x{n},Множитель т�
 box.coins,+{n} eggs,+{n} ta tuxum,+{n} яиц
 box.keys,+1 amber,+1 qahrabo,+1 янтарь
 settings.show_fps,Show FPS,FPS ko'rsatish,Показывать FPS
+menu.multiplayer,Multiplayer,Ko'p o'yinchi,Мультиплеер
+party.player_n,Player {n},O'yinchi {n},Игрок {n}
+party.keys_name_wasd,Keys WASD,WASD tugmalari,Клавиши WASD
+party.keys_name_arrows,Arrow keys,Strelkalar,Стрелки
+party.bot_name,Bot {n},Bot {n},Бот {n}
+party.title,MULTIPLAYER,KO'P O'YINCHI,МУЛЬТИПЛЕЕР
+party.subtitle,Up to 3 players on one screen - your phones are the controllers,Bitta ekranda 3 tagacha o'yinchi - telefoningiz pult bo'ladi,До 3 игроков на одном экране - телефоны вместо пультов
+party.help.button,HOW TO CONNECT (F1),QANDAY ULANISH (F1),КАК ПОДКЛЮЧИТЬСЯ (F1)
+party.join.title,JOIN WITH YOUR PHONE,TELEFON BILAN QO'SHILING,ПОДКЛЮЧИТЕ ТЕЛЕФОН
+party.join.step1,1. Connect the phone to the same Wi-Fi as this computer.,1. Telefonni shu kompyuter ulangan Wi-Fi ga ulang.,"1. Подключите телефон к тому же Wi-Fi, что и компьютер."
+party.join.step2,"2. Scan the code with the camera, or type the address in the browser.",2. Kodni kamera bilan skanerlang yoki manzilni brauzerga yozing.,2. Отсканируйте код камерой или введите адрес в браузере.
+party.join.step3,"3. Enter your name, pick a runner and press READY.","3. Ismingizni yozing, yuguruvchini tanlang va TAYYOR ni bosing.","3. Введите имя, выберите бегуна и нажмите ГОТОВ."
+party.join.scan,or open in the phone browser:,yoki telefon brauzerida oching:,или откройте в браузере телефона:
+party.server_error,Could not start the server. Ports 8080-8090 are all in use.,Serverni ishga tushirib bo'lmadi. 8080-8090 portlarning hammasi band.,Не удалось запустить сервер. Порты 8080-8090 заняты.
+party.card.empty,Waiting for a player,O'yinchi kutilmoqda,Ждём игрока
+party.card.ready,READY,TAYYOR,ГОТОВ
+party.card.unready,NOT YET,HALI EMAS,ЕЩЁ НЕТ
+party.card.remove,Remove,Olib tashlash,Убрать
+party.card.lost,PHONE LOST,TELEFON UZILDI,ТЕЛЕФОН ОТКЛЮЧЁН
+party.card.is_ready,READY!,TAYYOR!,ГОТОВ!
+party.card.not_ready,Not ready,Tayyor emas,Не готов
+party.kind.phone,Phone,Telefon,Телефон
+party.kind.wasd,Keyboard: W A S D,Klaviatura: W A S D,Клавиатура: W A S D
+party.kind.arrows,Keyboard: arrow keys,Klaviatura: strelkalar,Клавиатура: стрелки
+party.kind.bot,Computer,Kompyuter,Компьютер
+party.add_keyboard,+ KEYBOARD (K),+ KLAVIATURA (K),+ КЛАВИАТУРА (K)
+party.add_bot,+ BOT (B),+ BOT (B),+ БОТ (B)
+party.start,START (Enter),BOSHLASH (Enter),СТАРТ (Enter)
+party.lobby.keys_hint,"Keyboard players: K add, L remove, A/D or Left/Right change runner, W or Up ready.  B / N add / remove a bot.  F11 full screen.  Esc back.","Klaviatura o'yinchilari: K qo'shish, L olib tashlash, A/D yoki Chap/O'ng yuguruvchini almashtirish, W yoki Yuqori tayyor.  B / N bot qo'shish / olib tashlash.  F11 to'liq ekran.  Esc orqaga.","Игроки с клавиатуры: K добавить, L убрать, A/D или Влево/Вправо сменить бегуна, W или Вверх готов.  B / N добавить / убрать бота.  F11 полный экран.  Esc назад."
+party.status.waiting,Waiting for players. Up to three can join.,O'yinchilar kutilmoqda. Uch kishigacha qo'shilishi mumkin.,Ждём игроков. Могут присоединиться до трёх.
+party.status.starting,Everyone is ready! Starting in {n}...,Hamma tayyor! {n} soniyadan keyin boshlanadi...,Все готовы! Старт через {n}...
+party.status.ready_count,Ready: {ready} of {total}. The round starts when everyone is ready.,Tayyor: {total} tadan {ready} ta. Hamma tayyor bo'lganda raund boshlanadi.,"Готовы: {ready} из {total}. Раунд начнётся, когда все будут готовы."
+party.hud.crash,CRASH!,URILDI!,УДАР!
+party.hud.ready,GET READY!,TAYYORLAN!,ПРИГОТОВЬСЯ!
+party.hud.out,OUT!,CHIQDI!,ВЫБЫЛ!
+party.hud.out_score,Final score {n},Yakuniy hisob {n},Итоговый счёт {n}
+party.hud.finish,TIME!,VAQT TUGADI!,ВРЕМЯ!
+party.hud.lost,PHONE LOST,TELEFON UZILDI,ТЕЛЕФОН ОТКЛЮЧЁН
+party.hud.lost_hint,The run waits. Reconnect the phone to continue.,Yugurish kutib turadi. Davom etish uchun telefonni qayta ulang.,"Забег ждёт. Подключите телефон снова, чтобы продолжить."
+party.place1,1st,1-o'rin,1-е
+party.place2,2nd,2-o'rin,2-е
+party.place3,3rd,3-o'rin,3-е
+party.change_players,Change players,O'yinchilarni almashtirish,Сменить игроков
+party.results.title,RESULTS,NATIJALAR,ИТОГИ
+party.results.phones,Phones can also press PLAY AGAIN - the round restarts when all of them do.,Telefonlarda ham YANA O'YNASH bor - hammasi bosganda raund qayta boshlanadi.,"На телефонах тоже есть ЕЩЁ РАЗ - раунд начнётся, когда нажмут все."
+party.results.lobby_in,Back to the lobby in {n} s,{n} soniyadan keyin lobbiga qaytiladi,Возврат в лобби через {n} с
+party.results.out,out of lives,jonlari tugadi,без жизней
+party.help.title,HOW TO CONNECT YOUR PHONE,TELEFONNI QANDAY ULASH,КАК ПОДКЛЮЧИТЬ ТЕЛЕФОН
+party.help.addresses,Addresses of this computer,Bu kompyuterning manzillari,Адреса этого компьютера
+party.help.diagnostics,Connection check,Ulanishni tekshirish,Проверка связи
+party.help.tips,If the phone cannot connect,Agar telefon ulana olmasa,Если телефон не подключается
+party.help.tip_wifi,Phone and computer must be on the same Wi-Fi network (not a guest network).,Telefon va kompyuter bitta Wi-Fi tarmog'ida bo'lishi kerak (mehmon tarmog'i emas).,Телефон и компьютер должны быть в одной сети Wi-Fi (не гостевой).
+party.help.tip_firewall,"Windows asks about the firewall the first time: allow private networks. If you said no, allow the game in Windows Defender Firewall or add a rule for TCP ports 8080-8090.","Windows birinchi marta firewall haqida so'raydi: xususiy tarmoqlarga ruxsat bering. Agar rad etgan bo'lsangiz, Windows Defender Firewall da o'yinga ruxsat bering yoki TCP 8080-8090 portlari uchun qoida qo'shing.","При первом запуске Windows спросит про брандмауэр: разрешите частные сети. Если отказали, разрешите игру в брандмауэре Защитника Windows или добавьте правило для TCP-портов 8080-8090."
+party.help.tip_data,"Turn mobile data off on the phone, so the browser uses Wi-Fi.",Brauzer Wi-Fi dan foydalanishi uchun telefonda mobil internetni o'chiring.,"Выключите мобильный интернет, чтобы браузер шёл через Wi-Fi."
+party.help.tip_ping,Test: open the address + /ping on the phone. It should show: ok,Tekshiruv: telefonda manzil + /ping ni oching. Natija: ok,Проверка: откройте на телефоне адрес + /ping. Должно появиться: ok
+party.help.tip_screen,Keep the phone screen on while playing (screen timeout in the phone settings).,O'yin paytida telefon ekrani o'chmasin (telefon sozlamalaridagi ekran vaqti).,Не давайте экрану телефона гаснуть во время игры (тайм-аут экрана в настройках).
+party.help.tip_hotspot,Still nothing? Turn on a hotspot on one phone and connect the computer and the other phones to it.,"Baribir ulanmayaptimi? Bitta telefonda hotspot yoqing, kompyuter va boshqa telefonlarni unga ulang.",Всё равно не выходит? Включите точку доступа на одном телефоне и подключите к ней компьютер и остальные телефоны.
+party.help.close,GOT IT,TUSHUNARLI,ПОНЯТНО
+party.help.port,Port: {port},Port: {port},Порт: {port}
+party.help.no_network,No network found. Connect this computer to Wi-Fi.,Tarmoq topilmadi. Kompyuterni Wi-Fi ga ulang.,Сеть не найдена. Подключите компьютер к Wi-Fi.
+party.help.virtual,"virtual adapter, phones usually cannot reach it","virtual adapter, telefonlar odatda unga ulana olmaydi","виртуальный адаптер, телефоны обычно не видят его"
+party.help.counters,Page opened: {pages} times.  Controllers connected: {total} (now {now}).,Sahifa ochildi: {pages} marta.  Ulangan pultlar: {total} (hozir {now}).,Страница открыта: {pages} раз.  Подключено пультов: {total} (сейчас {now}).
+party.help.verdict_none,No phone has reached the computer yet: check the Wi-Fi network and the firewall.,Hali birorta telefon kompyuterga yetib kelmadi: Wi-Fi tarmog'i va firewall ni tekshiring.,Ни один телефон ещё не достучался до компьютера: проверьте Wi-Fi и брандмауэр.
+party.help.verdict_page,"The page opened, but the controller did not connect: reload the page on the phone.","Sahifa ochildi, lekin pult ulanmadi: telefonda sahifani yangilang.","Страница открылась, но пульт не подключился: обновите страницу на телефоне."
+party.help.verdict_ok,A phone is connected. All good!,Telefon ulangan. Hammasi joyida!,Телефон подключён. Всё в порядке!
+party.embedded_hint,"Running inside the Godot editor, so the window cannot grow. In the editor's Game tab turn off ""Embed Game on Next Play"" (or run the exported game) for a full-screen window.","O'yin Godot muharriri ichida ishlayapti, shuning uchun oyna kattalasha olmaydi. To'liq oyna uchun muharrirning Game bo'limida ""Embed Game on Next Play"" ni o'chiring (yoki eksport qilingan o'yinni ishga tushiring).","Игра запущена внутри редактора Godot, поэтому окно не может увеличиться. Отключите ""Embed Game on Next Play"" на вкладке Game (или запустите экспортированную игру), чтобы получить полноэкранное окно."

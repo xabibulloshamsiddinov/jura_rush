@@ -3,7 +3,7 @@
 ## idles behind the runner (breathing, sniffing, roaring every few seconds); when a run starts it
 ## roars once more, turns to its left and stomps off sideways into the jungle, clear of the camera
 ## swinging round the runner's right side into the run view. Reads speed, player events and the
-## flow state from the event bus only (plus GameState.current() to resolve hide_now() requests).
+## flow state from its world's event bus only (plus the current flow to resolve hide_now() requests).
 ##
 ## States: Menu -> Retreat (run starts) -> Hidden
 ##         Hidden -> Chase (player_stumbled) -> Hidden (window elapsed)
@@ -67,9 +67,11 @@ var _flow: StringName = &"boot"
 var _state_time: float = 0.0
 var _next_roar: float = 3.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _bus: EventBus = GameEvents
 
 
 func _ready() -> void:
+	_bus = EventScope.of(self)
 	add_to_group(&"chaser")
 	collision_setup()
 	_visual = VisualProvider.build(&"chaser", _build_visual)
@@ -84,19 +86,24 @@ func _ready() -> void:
 	machine.add_state(RETREAT, ChaserState.new(MENU_POS.z, true, MENU_SCALE), self)
 	machine.transitioned.connect(func(_from: StringName, to: StringName) -> void:
 		_state_time = 0.0
-		GameEvents.chaser_state_changed.emit(to))
+		_bus.chaser_state_changed.emit(to))
 	machine.start(HIDDEN)
 	position = Vector3(0.0, 0.0, HIDDEN_Z)
 	visible = false
-	GameEvents.speed_changed.connect(func(speed: float) -> void: world_speed = speed)
-	GameEvents.player_stumbled.connect(_on_player_stumbled)
-	GameEvents.player_crashed.connect(_on_player_crashed)
-	GameEvents.player_revived.connect(hide_now)
-	GameEvents.lane_changed.connect(func(_from: int, to: int) -> void: target_x = _cfg.lane_x(to))
-	GameEvents.state_changed.connect(_on_flow_changed)
-	_flow = GameState.current()
+	_bus.speed_changed.connect(func(speed: float) -> void: world_speed = speed)
+	_bus.player_stumbled.connect(_on_player_stumbled)
+	_bus.player_crashed.connect(_on_player_crashed)
+	_bus.player_revived.connect(hide_now)
+	_bus.lane_changed.connect(func(_from: int, to: int) -> void: target_x = _cfg.lane_x(to))
+	_bus.state_changed.connect(_on_flow_changed)
+	_flow = _current_flow()
 	if _flow == &"boot" or _flow == &"menu":
 		_enter_menu()
+
+
+## Flow state of this chaser's world: GameState for the single-player game, else its own bus.
+func _current_flow() -> StringName:
+	return GameState.current() if _bus == GameEvents else _bus.flow
 
 
 ## Documented layer use only: the chaser lives on layer 5 and collides with nothing.
@@ -107,7 +114,7 @@ func collision_setup() -> void:
 ## Sends the chaser away immediately (new run, revive). In the menu it goes back to its idle
 ## spot; while a run is loading straight out of the menu it keeps its roar-and-retreat.
 func hide_now() -> void:
-	var flow: StringName = GameState.current()
+	var flow: StringName = _current_flow()
 	if flow == &"menu" or flow == &"boot":
 		_enter_menu()
 		return
@@ -148,7 +155,7 @@ func tick(delta: float) -> void:
 			goal_x = MENU_POS.x
 			_next_roar -= delta
 			if _next_roar <= 0.0 and rex != null and rex.roar():
-				GameEvents.chaser_state_changed.emit(&"roar")
+				_bus.chaser_state_changed.emit(&"roar")
 				_next_roar = _rng.randf_range(6.0, 9.0)
 		RETREAT:
 			lag = 0.0
@@ -219,7 +226,7 @@ func _enter_menu() -> void:
 func _start_retreat() -> void:
 	machine.transition_to(RETREAT, true)
 	if rex != null and rex.roar():
-		GameEvents.chaser_state_changed.emit(&"roar")
+		_bus.chaser_state_changed.emit(&"roar")
 
 
 func _snap_hidden() -> void:

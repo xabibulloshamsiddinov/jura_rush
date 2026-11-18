@@ -6,6 +6,8 @@ extends Node
 const WARNING_TIME: float = 2.0
 
 var player: Player = null
+## False in multiplayer: every player gets the base durations, whatever the save has upgraded.
+var use_upgrades: bool = true
 
 ## id -> seconds remaining.
 var _remaining: Dictionary = {}
@@ -26,7 +28,7 @@ func activate(id: StringName) -> void:
 	var def: PowerupDef = ContentDB.powerup(id)
 	if def == null or player.is_dead:
 		return
-	var duration: float = def.duration_for_level(SaveSystem.upgrade_level(id))
+	var duration: float = def.duration_for_level(SaveSystem.upgrade_level(id) if use_upgrades else 0)
 	var was_active: bool = _remaining.has(id)
 	if was_active and def.stacking == PowerupDef.Stacking.IGNORE:
 		return
@@ -37,7 +39,7 @@ func activate(id: StringName) -> void:
 	_warned.erase(id)
 	if not was_active:
 		(_strategies[id] as PowerupStrategy).on_activate(player)
-	GameEvents.powerup_activated.emit(id, duration)
+	player.events.powerup_activated.emit(id, duration)
 
 
 ## Starts a power-up for an explicit duration (head-start consumable).
@@ -46,7 +48,7 @@ func activate_for(id: StringName, duration: float) -> void:
 	if _remaining.has(id):
 		_remaining[id] = duration
 		_total[id] = duration
-		GameEvents.powerup_activated.emit(id, duration)
+		player.events.powerup_activated.emit(id, duration)
 
 
 ## True while a power-up is running.
@@ -66,7 +68,7 @@ func cancel(id: StringName) -> void:
 	_remaining.erase(id)
 	_total.erase(id)
 	(_strategies[id] as PowerupStrategy).on_expire(player)
-	GameEvents.powerup_expired.emit(id)
+	player.events.powerup_expired.emit(id)
 
 
 ## Ends everything (death, new run).
@@ -86,7 +88,7 @@ func tick(delta: float) -> void:
 		(_strategies[id] as PowerupStrategy).on_tick(player, delta, left)
 		if left <= WARNING_TIME and not _warned.has(id):
 			_warned[id] = true
-			GameEvents.powerup_expiring.emit(id)
+			player.events.powerup_expiring.emit(id)
 		if left <= 0.0:
 			_expired.append(id)
 	for id in _expired:

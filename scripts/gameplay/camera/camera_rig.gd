@@ -84,6 +84,7 @@ class Shot:
 
 
 func _ready() -> void:
+	var bus: EventBus = EventScope.of(self)
 	camera = Camera3D.new()
 	camera.near = 0.2
 	camera.far = 400.0
@@ -96,22 +97,22 @@ func _ready() -> void:
 	shake = ScreenShake.new()
 	add_child(shake)
 	_speed_fov = Vector2(_cfg.fov_min, 0.0)
-	GameEvents.speed_changed.connect(func(speed: float) -> void:
+	bus.speed_changed.connect(func(speed: float) -> void:
 		_speed_fraction = _cfg.speed_fraction(speed))
-	GameEvents.near_miss.connect(func(_lane: int) -> void: kick_fov(_cfg.fov_punch_near))
-	GameEvents.powerup_activated.connect(func(id: StringName, _d: float) -> void:
+	bus.near_miss.connect(func(_lane: int) -> void: kick_fov(_cfg.fov_punch_near))
+	bus.powerup_activated.connect(func(id: StringName, _d: float) -> void:
 		if id == &"dash" or id == &"jetpack":
 			_boost_target = _cfg.fov_punch_boost)
-	GameEvents.powerup_expired.connect(func(id: StringName) -> void:
+	bus.powerup_expired.connect(func(id: StringName) -> void:
 		if id == &"dash" or id == &"jetpack":
 			_boost_target = 0.0)
-	GameEvents.camera_trauma.connect(func(amount: float) -> void: shake.add_trauma(amount))
-	GameEvents.player_stumbled.connect(func(_k: StringName) -> void: shake.add_trauma(0.45))
-	GameEvents.player_crashed.connect(func(_k: StringName) -> void: shake.add_trauma(0.9))
-	GameEvents.player_landed.connect(func(impact: float) -> void:
+	bus.camera_trauma.connect(func(amount: float) -> void: shake.add_trauma(amount))
+	bus.player_stumbled.connect(func(_k: StringName) -> void: shake.add_trauma(0.45))
+	bus.player_crashed.connect(func(_k: StringName) -> void: shake.add_trauma(0.9))
+	bus.player_landed.connect(func(impact: float) -> void:
 		if impact > 16.0:
 			shake.add_trauma(clampf((impact - 16.0) / 30.0, 0.1, 0.4)))
-	GameEvents.obstacle_smashed.connect(func(_p: Vector3) -> void: shake.add_trauma(0.3))
+	bus.obstacle_smashed.connect(func(_p: Vector3) -> void: shake.add_trauma(0.3))
 
 
 ## Switches camera behaviour, blending from the current view over `blend_time` seconds.

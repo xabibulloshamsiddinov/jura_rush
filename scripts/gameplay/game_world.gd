@@ -14,6 +14,11 @@
 ## motion: Engine.time_scale shrinks the frame delta, so every system slows together. Only
 ## shader-TIME idle motion (creature neck / tail sway, character hair flutter, foliage wind) keeps
 ## running through a pause, by design.
+##
+## Multiplayer: PartyMatch builds one GameWorld per player inside its own SubViewport (own World3D)
+## with `solo = false` and a private EventBus. Such a world is driven by the match through its bus
+## (state_changed), never touches GameState, the save, missions or services, and its runner takes
+## commands from a phone instead of the touch screen.
 class_name GameWorld
 extends Node3D
 
@@ -38,12 +43,27 @@ var pickups: PickupSystem = null
 var sky_coins: SkyCoinTrail = null
 var input: InputHandler = null
 var bot: BotController = null
+## Event bus of this world. Null = the GameEvents autoload (the single-player world).
+var events: EventBus = null
+## False for a multiplayer world: no services, missions, consumables, save writes, power-up
+## upgrades, touch / keyboard input or biome cycle (see the header).
+var solo: bool = true
+## Multiplayer run setup, read by _prepare_run when solo is false.
+var party_seed: int = 0
+var party_biome: int = 0
+## Speed of this world's clock. Multiplayer crash slow motion and "phone lost" freezes are per
+## world; the single-player game uses Engine.time_scale through GameState instead.
+var local_time_scale: float = 1.0
 
 var _cfg: GameConfig = GameConfig.current()
 var _state: StringName = &"boot"
 
 
 func _ready() -> void:
+	if events == null:
+		events = GameEvents
+	else:
+		set_meta(EventScope.META, events)
 	Factories.register_pools(_cfg.active_chunks)
 	biomes = BiomeDirector.new()
 	add_child(biomes)
@@ -56,6 +76,7 @@ func _ready() -> void:
 	player = PLAYER_SCENE.instantiate() as Player
 	player.track = track
 	add_child(player)
+	player.powerups.use_upgrades = solo
 	sky_coins = SkyCoinTrail.new()
 	add_child(sky_coins)
 	player.sky_coins = sky_coins
@@ -75,25 +96,32 @@ func _ready() -> void:
 	add_child(pickups)
 	score = ScoreSystem.new()
 	score.track = track
+	score.persist = solo
 	add_child(score)
-	missions = MissionSystem.new()
-	add_child(missions)
+	if solo:
+		missions = MissionSystem.new()
+		add_child(missions)
 	input = InputHandler.new()
 	input.player = player
 	add_child(input)
 	bot = BotController.new()
 	bot.setup(track, player)
 	add_child(bot)
-	add_child(TrackDebugDraw.new(track))
-	Services.provide(&"world", self)
 	track.set_bend_scale(0.3)
-	GameEvents.state_changed.connect(_on_state_changed)
-	GameEvents.player_crashed.connect(func(_kind: StringName) -> void: track.halt())
-	GameEvents.tutorial_finished.connect(func() -> void: track.generator.forced_empty = false)
-	GameEvents.item_purchased.connect(func(_id: StringName) -> void: player.apply_loadout())
+	events.state_changed.connect(_on_state_changed)
+	events.player_crashed.connect(func(_kind: StringName) -> void: track.halt())
+	if solo:
+		add_child(TrackDebugDraw.new(track))
+		Services.provide(&"world", self)
+		GameEvents.tutorial_finished.connect(func() -> void: track.generator.forced_empty = false)
+		GameEvents.item_purchased.connect(func(_id: StringName) -> void: player.apply_loadout())
 
 
 func _process(delta: float) -> void:
+	if local_time_scale != 1.0:
+		if local_time_scale <= 0.0:
+			return
+		delta *= local_time_scale
 	# Equal sub-steps no longer than MAX_STEP (a little slack so 59-61 fps stays one step).
 	var steps: int = maxi(1, ceili(delta / MAX_STEP - 0.2))
 	var h: float = delta / float(steps)
@@ -131,13 +159,14 @@ func _step_run(delta: float) -> void:
 	collisions.tick(step)
 	pickups.tick(delta, step)
 	score.tick(delta)
-	biomes.tick(delta)
+	if solo:
+		biomes.tick(delta)
 	chaser.tick(delta)
 
 
 func _on_state_changed(from: StringName, to: StringName) -> void:
 	_state = to
-	input.enabled = to == &"running"
+	input.enabled = solo and to == &"running"
 	match to:
 		&"menu":
 			_show_menu_world()
@@ -154,7 +183,7 @@ func _on_state_changed(from: StringName, to: StringName) -> void:
 		&"running":
 			# GO: out of the ready crouch into the run cycle.
 			player.sync_pose()
-			if from == &"countdown" and score.run_time <= 0.0:
+			if solo and from == &"countdown" and score.run_time <= 0.0:
 				_apply_consumables()
 		&"revive", &"game_over":
 			track.halt()
@@ -177,8 +206,12 @@ func _show_menu_world() -> void:
 
 func _prepare_run() -> void:
 	director.reset()
-	biomes.reset((GameState.run_seed % 4) if GameState.is_daily else 0)
-	track.reset(GameState.run_seed, GameState.tutorial_active)
+	if solo:
+		biomes.reset((GameState.run_seed % 4) if GameState.is_daily else 0)
+		track.reset(GameState.run_seed, GameState.tutorial_active)
+	else:
+		biomes.reset(party_biome)
+		track.reset(party_seed, false)
 	track.set_bend_scale(1.0)
 	player.reset()
 	player.apply_loadout()
@@ -186,6 +219,21 @@ func _prepare_run() -> void:
 	sky_coins.clear()
 	score.reset()
 	bot.reset()
+
+
+## Rebuilds the menu backdrop after the multiplayer mode had the screen: track, biome look, fog and
+## bend globals (the split-screen worlds overwrote them) and the menu camera.
+func restore_menu() -> void:
+	_show_menu_world()
+	camera_rig.camera.make_current()
+
+
+## Gives pooled nodes (chunks with their obstacles and pickups, sky eggs, effects) back before a
+## multiplayer world is freed, so the pools do not lose them.
+func dispose() -> void:
+	track.release_all()
+	sky_coins.clear()
+	VFXManager.release_under(self)
 
 
 ## Auto-uses owned consumables at the start of a run: head-start dash and score booster.
@@ -198,4 +246,4 @@ func _apply_consumables() -> void:
 	if SaveSystem.consumable_count(&"booster") > 0:
 		SaveSystem.add_consumable(&"booster", -1)
 		score.booster_bonus = BOOSTER_BONUS
-		GameEvents.multiplier_changed.emit(score.total_multiplier())
+		events.multiplier_changed.emit(score.total_multiplier())

@@ -1,6 +1,19 @@
 ## Event Bus (Observer). Signals only: gameplay emits, UI / audio / VFX / missions subscribe.
 ## Nothing in scripts/gameplay may reference scripts/ui; this bus is the only bridge.
+##
+## The GameEvents autoload is THE bus of the single-player game. A multiplayer world gets its own
+## EventBus instance (EventScope finds the right one for any node), so the runs on a split screen
+## never reach the HUD, missions, the save or GameState, nor each other.
+class_name EventBus
 extends Node
+
+## Flow state of the world this bus serves, kept in step with state_changed. (The single-player
+## flow lives in GameState; this copy matters for the multiplayer buses.)
+var flow: StringName = &"boot"
+
+
+func _init() -> void:
+	state_changed.connect(func(_from: StringName, to: StringName) -> void: flow = to)
 
 # --- Flow -----------------------------------------------------------------
 signal state_changed(from: StringName, to: StringName)
@@ -18,6 +31,8 @@ signal request_restart
 signal request_menu
 signal request_revive(method: StringName)
 signal request_decline_revive
+## Main menu: open the multiplayer lobby (PartyMode).
+signal request_party_open
 
 # --- Player ----------------------------------------------------------------
 signal lane_changed(from: int, to: int)

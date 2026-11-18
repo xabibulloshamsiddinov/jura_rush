@@ -21,10 +21,11 @@ var _cfg: GameConfig = GameConfig.current()
 
 
 func _ready() -> void:
+	var bus: EventBus = EventScope.of(self)
 	strategy = DifficultyStrategy.create(_cfg.difficulty_strategy)
-	GameEvents.near_miss.connect(func(_lane: int) -> void: near_recent += 1.0)
-	GameEvents.player_stumbled.connect(func(_kind: StringName) -> void: _on_hit())
-	GameEvents.player_crashed.connect(func(_kind: StringName) -> void: _on_hit())
+	bus.near_miss.connect(func(_lane: int) -> void: near_recent += 1.0)
+	bus.player_stumbled.connect(func(_kind: StringName) -> void: _on_hit())
+	bus.player_crashed.connect(func(_kind: StringName) -> void: _on_hit())
 
 
 ## Restarts the director for a new run.

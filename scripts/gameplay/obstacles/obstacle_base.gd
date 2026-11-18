@@ -106,7 +106,7 @@ func smash() -> void:
 		return
 	disabled = true
 	visible = false
-	GameEvents.obstacle_smashed.emit(global_position + Vector3(0.0, (y_min + y_max) * 0.5, 0.0))
+	EventScope.of(self).obstacle_smashed.emit(global_position + Vector3(0.0, (y_min + y_max) * 0.5, 0.0))
 
 
 ## Hook: which hit type applies.

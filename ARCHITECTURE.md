@@ -4,7 +4,8 @@ Godot 4.3+ (developed and tested on 4.6.3), GDScript with static typing everywhe
 (`untyped_declaration` is an error in Project Settings). Almost every node tree is built in code;
 the `.tscn` files are a root node plus a script. Jura Rush is the Mesozoic re-theme of the former
 "Neon Rails": the gameplay rules, numbers and content ids are unchanged, only what they look and
-sound like changed (see README, "Assets and obstacles"). The 2 Player versus mode was removed.
+sound like changed (see README, "Assets and obstacles"). The old local 2 Player versus mode was
+removed; multiplayer is now the phone-controlled split screen of section 11.
 
 ## 1. Layers and dependency rules
 
@@ -35,6 +36,12 @@ Rules (enforced by convention, checked in review):
   the bus and decide what an event sounds / looks like.
 * Only `GameState` changes the flow state, pauses the tree or touches `Engine.time_scale`.
 * `scripts/core` and `scripts/util` depend on nothing but the engine.
+* Gameplay emits on the bus of its own world: `EventScope.of(node)` (scripts/autoload) walks up to
+  the nearest node tagged with `EventScope.META`, else returns `GameEvents`. The single-player world
+  has no tag, so for it every signal still goes through `GameEvents`.
+* `scripts/party` (multiplayer flow) may use gameplay and services; `scripts/net` (server, QR,
+  phone page) depends on nothing but the engine and `Log`. UI reads the party through
+  `Services.locate(&"party")`.
 
 ## 2. Design patterns and where they are used
 
@@ -300,3 +307,49 @@ the chunks within 24 m; creature idle motion is vertex-shader work on `TIME`.
 | UI screenshots of every screen | `godot --path . --resolution 540x960 -- --ui-shots=<dir>` |
 | Gameplay screenshots | `godot --path . -- --shot=<dir>/x.png` plus the flags in README |
 | Performance log (FPS, CPU / GPU ms, draw calls) | add `--perf-log`, or Settings > Show FPS |
+
+## 11. Multiplayer (split screen, phones as controllers)
+
+```
+ phone browser  --HTTP GET /-->  NetServer  (TCPServer, polled in _process, PROCESS_MODE_ALWAYS)
+      |  <--WebSocket /ws-->        |  message_received / client_closed
+      |                         PhoneHub  (JSON protocol, roster ops, reconnect by phone id)
+      |                             |  action(slot, left|right|jump|roll), member_lost / back
+      v                         PartyMode (phases: lobby -> playing <-> paused -> results)
+ keyboard / bots  ------------->    |  owns PartyRoster (slots, runners, READY)
+                                PartyMatch (one round)
+                                    |  CanvasLayer row of PartyViews, one per player
+                     PartyView = TextureRect + SubViewport(own_world_3d) + GameWorld(solo=false)
+                                    + private EventBus (tagged with EventScope.META)
+```
+
+* **Isolation.** Every strip is a full `GameWorld` in its own World3D (own environment, sun,
+  physics space), driven through its own `EventBus`: the match emits `state_changed`
+  (menu -> loading -> countdown -> running -> revive -> countdown ... -> game_over) on it, and
+  the world's systems hear only their own runner. Nothing reaches GameState, the HUD, missions,
+  haptics or the save; `GameWorld.solo = false` also drops services, consumables, upgrades,
+  touch input and the biome cycle (one biome per round keeps the global shader colours shared).
+  Only world 0 writes the sideways-bend global (`TrackManager.drives_bend`).
+* **Time.** Crash hit-stop and slow motion are per world (`GameWorld.local_time_scale`); a frozen
+  world (phone lost) has scale 0. Pause pauses the whole tree through `GameState.set_tree_paused`;
+  PartyMode, PhoneHub and NetServer run with `PROCESS_MODE_ALWAYS`, PartyMatch is pausable.
+* **Rendering.** Each SubViewport renders at the strip's real pixel size (canvas size times the
+  window / canvas ratio) with the quality preset's 3D scale, so three strips cost about one
+  full-screen frame. The canvas switches to a 1920 x 1080 base and the window is maximized while
+  the mode is open (its old size and position come back on exit); the single-player world leaves the tree and comes back via
+  `GameWorld.restore_menu()`.
+* **Effects and sound.** `PartyView` maps its bus to `VFXManager.play(id, pos, color, world)` (the
+  effect lives in that world) and `AudioManager.play`. Before a world is freed,
+  `GameWorld.dispose()` returns chunks, obstacles, pickups and live effects to their pools.
+* **Round rules.** Same seed for everybody, three lives, `ROUND_TIME` 180 s, end when the clock
+  runs out or everybody is out; places by score (ties share a place), then distance.
+* **Protocol.** See the header of `scripts/party/phone_hub.gd`. Phones keep a random id in
+  localStorage; `hello` with a known id re-attaches the slot. Lobby slots of lost phones are kept
+  for 5 s (page reload), round slots until the round ends.
+* **Server.** RFC 6455 handshake (SHA-1 + base64), masked client frames, fragmentation, ping every
+  5 s, idle timeout 15 s, 64 KB message cap, 24 connections, HTTP 404 / 405 / 431 handling, ports
+  8080-8090. Plain HTTP / WS on the LAN without authentication: it only accepts controller
+  messages and runs only while the mode is open.
+* **QR.** `QrCode` follows the reference algorithm (byte mode, level M, Reed-Solomon over
+  GF(256), interleaving, penalty-scored masks, format / version bits). The golden symbols in
+  `test_party.gd` were checked with the zxing-cpp decoder.

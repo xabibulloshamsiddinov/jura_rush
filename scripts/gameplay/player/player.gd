@@ -45,6 +45,12 @@ var powerups: PowerupController = null
 var trail: TrailComponent = null
 var visual: PlayerVisual = null
 var sky_coins: SkyCoinTrail = null
+## Event bus of the world this runner is in (GameEvents in the single-player game).
+var events: EventBus = null
+## Skin / trail override (multiplayer: every player brings their own pick). Empty = the items
+## equipped in the save.
+var look_character: StringName = &""
+var look_trail: StringName = &""
 
 var _cfg: GameConfig = GameConfig.current()
 var _lane_from_x: float = 0.0
@@ -69,6 +75,7 @@ static var _dust_material: StandardMaterial3D = null
 
 
 func _ready() -> void:
+	events = EventScope.of(self)
 	collision_layer = 1 << 1
 	collision_mask = 0
 	_capsule = CapsuleShape3D.new()
@@ -111,10 +118,12 @@ func _ready() -> void:
 	apply_loadout()
 
 
-## Applies the equipped skin and trail from the save.
+## Applies the skin and trail: the look override when set, else the items equipped in the save.
 func apply_loadout() -> void:
-	visual.apply_character(ContentDB.character(SaveSystem.equipped(&"character")))
-	trail.apply_trail(ContentDB.trail(SaveSystem.equipped(&"trail")))
+	var character: StringName = look_character if look_character != &"" else SaveSystem.equipped(&"character")
+	var trail_id: StringName = look_trail if look_trail != &"" else SaveSystem.equipped(&"trail")
+	visual.apply_character(ContentDB.character(character))
+	trail.apply_trail(ContentDB.trail(trail_id))
 
 
 ## Puts the runner back at the start line for a new run.
@@ -160,7 +169,7 @@ func revive() -> void:
 	visual.reset_motion()
 	grant_invulnerability(2.5)
 	machine.transition_to(RUN, true)
-	GameEvents.player_revived.emit()
+	events.player_revived.emit()
 
 
 ## Queues a command. It runs now if the current state accepts it, otherwise it stays buffered
@@ -252,7 +261,7 @@ func do_lane(direction: int) -> bool:
 	lane = target
 	_start_lane_move(_cfg.lane_time_at(speed_fraction()))
 	trail.burst()
-	GameEvents.lane_changed.emit(previous_lane, lane)
+	events.lane_changed.emit(previous_lane, lane)
 	return true
 
 
@@ -294,7 +303,7 @@ func take_hit(lethal: bool, kind: StringName, obstacle: ObstacleBase, side: bool
 	if side:
 		_bump_back()
 	machine.transition_to(STUMBLE, true)
-	GameEvents.player_stumbled.emit(kind)
+	events.player_stumbled.emit(kind)
 
 
 ## Kills the runner. GameState reacts to player_crashed (hit-stop, revive offer...).
@@ -304,7 +313,7 @@ func die(kind: StringName) -> void:
 	is_dead = true
 	powerups.clear_all()
 	machine.transition_to(DEAD, true)
-	GameEvents.player_crashed.emit(kind)
+	events.player_crashed.emit(kind)
 
 
 ## Enters jetpack flight (called by the jetpack power-up strategy).
@@ -465,7 +474,7 @@ func _land(ground: float) -> void:
 	if is_dead:
 		return
 	visual.land(impact)
-	GameEvents.player_landed.emit(impact)
+	events.player_landed.emit(impact)
 	if slam_pending:
 		slam_pending = false
 		machine.transition_to(ROLL, true)
@@ -478,7 +487,7 @@ func _bump_back() -> void:
 	previous_lane = lane
 	lane = back
 	_start_lane_move(_cfg.lane_change_time)
-	GameEvents.lane_changed.emit(previous_lane, lane)
+	events.lane_changed.emit(previous_lane, lane)
 
 
 func _set_collider_height(height: float) -> void:

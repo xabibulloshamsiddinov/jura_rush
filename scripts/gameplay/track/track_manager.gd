@@ -27,6 +27,9 @@ static var dev_feature: TrackVisuals.Feature = TrackVisuals.Feature.NONE
 var recycled_count: int = 0
 ## Largest gap between neighbouring chunks ever measured (soak test).
 var max_gap_seen: float = 0.0
+## Writes the global sideways-bend shader parameter. Only one world of a split screen does, so
+## the curve does not flicker between the players' distances.
+var drives_bend: bool = true
 
 var _cfg: GameConfig = GameConfig.current()
 var _builder: ChunkBuilder = null
@@ -45,9 +48,11 @@ var _last_style: int = -1
 var _last_emitted_speed: float = -1.0
 var _noise: FastNoiseLite = FastNoiseLite.new()
 var _bend_scale: float = 1.0
+var _bus: EventBus = GameEvents
 
 
 func _ready() -> void:
+	_bus = EventScope.of(self)
 	_length = _cfg.chunk_length
 	library = PatternLibrary.new(_cfg)
 	for problem: String in library.errors:
@@ -96,7 +101,7 @@ func advance(delta: float) -> void:
 			1.0 / maxf(_cfg.speed_smoothing, 0.01), delta)
 	if absf(world_speed - _last_emitted_speed) > 0.1:
 		_last_emitted_speed = world_speed
-		GameEvents.speed_changed.emit(world_speed)
+		_bus.speed_changed.emit(world_speed)
 	var step: float = world_speed * delta
 	distance_travelled += step
 	chunks[0].position.z += step
@@ -107,8 +112,18 @@ func advance(delta: float) -> void:
 	for chunk in chunks:
 		if not chunk.tickers.is_empty():
 			chunk.tick(delta, world_speed)
-	var bend: float = _noise.get_noise_1d(distance_travelled * 0.004) * _cfg.bend_strength_x * _bend_scale
-	RenderingServer.global_shader_parameter_set(&"bend_x", bend)
+	if drives_bend:
+		var bend: float = _noise.get_noise_1d(distance_travelled * 0.004) * _cfg.bend_strength_x * _bend_scale
+		RenderingServer.global_shader_parameter_set(&"bend_x", bend)
+
+
+## Hands every chunk, and everything on it, back to the pools. Only for a track that is about to
+## be freed (a multiplayer world); advance() needs chunks again.
+func release_all() -> void:
+	for chunk in chunks:
+		remove_child(chunk)
+		Factories.Chunks.recycle(chunk)
+	chunks.clear()
 
 
 ## Stops the world instantly (crash, countdown).

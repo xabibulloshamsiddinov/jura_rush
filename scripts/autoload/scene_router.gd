@@ -5,7 +5,8 @@ extends Node
 
 const SCREEN_DIR: String = "res://scenes/ui/"
 const SCREEN_IDS: Array[StringName] = [&"loading_overlay", &"main_menu", &"hud", &"pause_menu",
-		&"revive_popup", &"game_over", &"shop", &"settings", &"missions", &"tutorial"]
+		&"revive_popup", &"game_over", &"shop", &"settings", &"missions", &"tutorial",
+		&"party_lobby", &"party_hud", &"party_pause", &"party_results", &"party_help"]
 
 var _layer: CanvasLayer = null
 var _root: Control = null

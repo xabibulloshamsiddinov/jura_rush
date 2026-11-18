@@ -4,7 +4,8 @@ A Mesozoic endless lane runner for Android / iOS (portrait) that also runs on de
 animal skins sprints through dinosaur country, dodging stones and herds, grabbing eggs and
 outrunning a T-Rex. Everything is generated in code: visuals from primitives and shaders, sound and
 music from a small synthesiser. Built with Godot 4 (GDScript, statically typed). Formerly the
-cyberpunk "Neon Rails"; the gameplay is unchanged, the 2 Player mode was removed.
+cyberpunk "Neon Rails"; the gameplay is unchanged. On desktop, up to three players race on one
+split screen with their phones as controllers (see "Multiplayer").
 
 ## Features
 
@@ -20,6 +21,40 @@ cyberpunk "Neon Rails"; the gameplay is unchanged, the 2 Player mode was removed
 * Five power-ups (Magnet, Shell Shield, Ptero Ride, Score x2, Dash), eggs and amber as currencies,
   missions, a daily run, revives, a shop with a 3D preview, settings with colour-blind and large-text
   modes, English / Uzbek / Russian.
+* Multiplayer (desktop): 1-3 players on a vertical split screen, each controlling a runner from
+  their own phone's browser (QR code, no app) or the keyboard; lobby with runner choice and READY,
+  3-2-1, lives, a round clock, results with medals and PLAY AGAIN.
+
+## Multiplayer
+
+Main menu > Multiplayer (desktop builds only). The window is maximized to fill the screen
+(F11 = full screen) and goes back to its size and place when you leave.
+Started from the Godot editor, the game runs embedded in the editor's Game tab and its window
+cannot grow (the lobby says so): turn off "Embed Game on Next Play" in the Game tab, or run the
+exported build.
+
+1. Phones join over the same Wi-Fi: scan the QR code in the lobby, or type the address shown
+   under it (`http://<this computer>:8080`) into the phone browser. No app, no internet needed.
+2. On the phone: enter a name, pick a runner (no two players share one), press READY. The round
+   starts by itself when everybody is ready (or press START on the computer).
+3. In the round the phone is a swipe pad (plus four arrow buttons): left / right change lane, up
+   jumps, down rolls. Every player runs the same track in their own strip; three lives each
+   (a crash costs one, the runner comes back after a short count), three minutes on the clock.
+   The phone shows score, lives, place and the time, and vibrates on hits (Android).
+4. Results: places with gold / silver / bronze, distance, eggs, score. PLAY AGAIN on the computer
+   or on every phone restarts with the same players; CHANGE PLAYERS goes back to the lobby.
+
+* A phone that loses Wi-Fi or reloads the page gets its slot back (it keeps a phone id); during a
+  round its runner waits frozen until the phone is back.
+* Keyboard players need no phone: K adds one (first W A S D + Space, then the arrow keys), L
+  removes it. B / N add / remove a computer player. Esc pauses (RESUME, RESTART, CHANGE PLAYERS,
+  MAIN MENU).
+* HOW TO CONNECT (F1) lists every address of the computer, counts page loads and connected
+  controllers and says what is wrong. Windows asks once to allow the game through the firewall:
+  allow private networks. The server (ports 8080-8090, plain HTTP and WebSocket, LAN only) runs
+  only while the multiplayer mode is open.
+* Multiplayer rounds never touch the save: all runners are free to pick, power-ups have their
+  base durations and no eggs are banked.
 
 ## Run it
 
@@ -35,6 +70,9 @@ F9 slow motion, F10 reload config, F11 speed up, F12 force next pattern.
 
 Web build: `godot --headless --path . --export-release "Web" build/web/index.html`, then serve
 `build/web/` with any static server (single-threaded build, no special headers needed).
+
+Windows build (the multiplayer host): `godot --headless --path . --export-release "Windows Desktop"
+build/windows/JuraRush.exe` (export templates installed; the pack is embedded in the .exe).
 
 ## Test it
 
@@ -54,6 +92,13 @@ All go after `--` on the command line (`godot --path . -- <flags>`); none is use
 | Flag | What it does |
 |---|---|
 | `--bot` | start with the test bot playing |
+| `--party` | open the multiplayer lobby at boot |
+| `--party-bots=N` | N computer players (1-3) start a multiplayer round at boot |
+| `--party-keys=N` | N keyboard players (1-2) join the lobby at boot |
+| `--party-help` | open the HOW TO CONNECT window at boot |
+| `--party-time=S` | multiplayer round length in seconds |
+| `--party-shot=<path>.png` | screenshot after `--party-shot-at=S` seconds (default 9), then quit |
+| `--party-close-at=S` | leave the multiplayer mode after S seconds (window restore check), then quit |
 | `--bot-soak=N` | headless bot soak for N simulated seconds, exit code 0 / 1 |
 | `--ui-shots=<dir>` | screenshot every menu screen (menu in en / uz / ru, every shop skin, flow screens), then quit |
 | `--shot=<path>.png` | automated run: `_menu`, `_run1`, `_run2`, `_pause` screenshots, then quit |
@@ -87,7 +132,7 @@ Use a portrait resolution for screenshots, e.g. `godot --path . --resolution 540
 ```
 config/      all tunable data (.tres): game_config, difficulty curve, obstacle / power-up /
              character / trail / biome / mission definitions, ui_theme
-scripts/     autoload/ core/ gameplay/ ui/ vfx/ audio/ util/
+scripts/     autoload/ core/ gameplay/ party/ net/ ui/ vfx/ audio/ util/
 scenes/      main.tscn plus thin scene files (root node + script)
 assets/      shaders, generated icon; drop replacement meshes / audio / fonts here
 tests/       test runner, suites, soak test

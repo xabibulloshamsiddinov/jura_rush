@@ -37,12 +37,12 @@ func _on_collect(player: Player) -> void:
 	var roll: float = randf()
 	if roll < 0.6:
 		var amount: int = COIN_REWARDS[randi() % COIN_REWARDS.size()]
-		GameEvents.mystery_box_opened.emit(&"coins", amount)
+		player.events.mystery_box_opened.emit(&"coins", amount)
 	elif roll < 0.75:
-		GameEvents.mystery_box_opened.emit(&"keys", 1)
+		player.events.mystery_box_opened.emit(&"keys", 1)
 	else:
 		var def: PowerupDef = ContentDB.POWERUPS[randi() % ContentDB.POWERUPS.size()]
-		GameEvents.mystery_box_opened.emit(def.id, 1)
+		player.events.mystery_box_opened.emit(def.id, 1)
 		player.powerups.activate(def.id)
 
 

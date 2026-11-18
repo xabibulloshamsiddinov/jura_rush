@@ -7,6 +7,7 @@ const SUITES: Array[String] = [
 	"res://tests/test_core.gd",
 	"res://tests/test_gameplay.gd",
 	"res://tests/test_creatures.gd",
+	"res://tests/test_party.gd",
 ]
 
 

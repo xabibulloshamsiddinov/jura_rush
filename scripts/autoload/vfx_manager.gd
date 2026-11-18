@@ -59,15 +59,16 @@ func prewarm() -> void:
 		PoolManager.register_factory(_pool_id(id), VfxFactory.build.bind(id), int(VfxFactory.POOL_SIZES[id]), false)
 
 
-## Plays a pooled one-shot world effect.
-func play(id: StringName, position: Vector3, color: Color = Color.WHITE) -> void:
+## Plays a pooled one-shot world effect. `parent` puts it into another 3D world than the
+## single-player one (a multiplayer split-screen view); position is then local to that parent.
+func play(id: StringName, position: Vector3, color: Color = Color.WHITE, parent: Node3D = null) -> void:
 	var pool: StringName = _pool_id(id)
 	if not PoolManager.has_pool(pool):
 		return
 	var node: CPUParticles3D = PoolManager.acquire(pool) as CPUParticles3D
 	if node == null:
 		return
-	_container.add_child(node)
+	(parent if parent != null else _container).add_child(node)
 	node.position = position
 	if color != Color.WHITE:
 		node.color = color
@@ -153,6 +154,18 @@ func _process(delta: float) -> void:
 			var player: Node3D = _player()
 			if player != null and bool(player.get(&"on_ground")) and not bool(player.get(&"flying")):
 				play(&"dust", player.position + Vector3(0.0, 0.08, 0.3))
+
+
+## Hands back to their pools, at once, the effects still playing under `root` (call before freeing
+## a world that was given effects through play(..., parent)).
+func release_under(root: Node) -> void:
+	for i in range(_active_nodes.size() - 1, -1, -1):
+		var node: Node3D = _active_nodes[i]
+		if is_instance_valid(node) and (node == root or root.is_ancestor_of(node)):
+			PoolManager.release(_active_ids[i], node)
+			_active_nodes.remove_at(i)
+			_active_ids.remove_at(i)
+			_active_left.remove_at(i)
 
 
 func _pool_id(id: StringName) -> StringName:

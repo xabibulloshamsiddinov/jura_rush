@@ -44,9 +44,11 @@ var _from: BiomeDef = null
 var _to: BiomeDef = null
 var _fade: float = 1.0
 var _offset: int = 0
+var _bus: EventBus = GameEvents
 
 
 func _ready() -> void:
+	_bus = EventScope.of(self)
 	if VisualTuning.FEATURE_SKY_DOME:
 		_sky = ShaderMaterial.new()
 		_sky.shader = preload("res://assets/shaders/sky_dome.gdshader")
@@ -133,7 +135,7 @@ func tick(delta: float) -> void:
 		_to = ContentDB.BIOMES[index]
 		_fade = 0.0
 		track.decor_set = BiomeStyle.of(_to)
-		GameEvents.biome_changed.emit(_to.id, Tr.t(_to.name_key))
+		_bus.biome_changed.emit(_to.id, Tr.t(_to.name_key))
 	if _fade < 1.0:
 		_fade = minf(_fade + delta / FADE_TIME, 1.0)
 		_apply(smoothstep(0.0, 1.0, _fade))

@@ -80,4 +80,4 @@ func _sweep_field(field: CoinField, field_z: float, delta: float, step: float) -
 		if wz - step <= COLLECT_Z and wz >= -COLLECT_Z and absf(pos.x - px) < COLLECT_X \
 				and pos.y > y_low and pos.y < y_high and not player.is_dead:
 			field.kill(i)
-			GameEvents.coin_collected.emit(_cfg.coin_value, Vector3(pos.x, pos.y, wz))
+			player.events.coin_collected.emit(_cfg.coin_value, Vector3(pos.x, pos.y, wz))

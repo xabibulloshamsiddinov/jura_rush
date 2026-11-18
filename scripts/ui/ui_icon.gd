@@ -9,7 +9,7 @@
 class_name UIIcon
 extends Control
 
-enum Kind { EGG, AMBER, GEAR, SCROLL, GIFT, BAG, HEAD, FOOTPRINTS, PLAY, TROPHY, MAGNET, SHELL, WING, DASH }
+enum Kind { EGG, AMBER, GEAR, SCROLL, GIFT, BAG, HEAD, FOOTPRINTS, PLAY, TROPHY, MAGNET, SHELL, WING, DASH, PLAYERS }
 
 ## Power-up id -> its symbol (the multiplier keeps its "x2" text).
 const POWERUP_KINDS: Dictionary = {
@@ -82,6 +82,8 @@ static func paint(ci: CanvasItem, icon: Kind, area: Rect2, tone: float = 1.0) ->
 			_wing(ci, c, s, tone)
 		Kind.DASH:
 			_dash(ci, c, s, tone)
+		Kind.PLAYERS:
+			_players(ci, c, s, tone)
 
 
 ## Symbol of a power-up as a Kind value, or -1 when it has none (it is drawn as text instead).
@@ -223,6 +225,17 @@ static func _head(ci: CanvasItem, c: Vector2, s: float, t: float) -> void:
 	ci.draw_polyline(_arc_pts(face_c + Vector2(0.0, 0.14) * s, 0.12 * s, 0.09 * s, deg_to_rad(25.0), deg_to_rad(155.0)),
 			out, maxf(s * 0.04, 1.5), true)
 	_bone(ci, c + Vector2(0.22, -0.40) * s, s * 0.46, deg_to_rad(-25.0), t)
+
+
+## Multiplayer: two caveman heads side by side with a phone between them.
+static func _players(ci: CanvasItem, c: Vector2, s: float, t: float) -> void:
+	_head(ci, c + Vector2(-0.2, 0.06) * s, s * 0.62, t)
+	_head(ci, c + Vector2(0.2, 0.06) * s, s * 0.62, t)
+	var line: float = _line(s)
+	var out: Color = _tone(_outline(), t)
+	var phone: PackedVector2Array = _round_rect(c, s, -0.11, 0.06, 0.22, 0.36, 0.05)
+	_shape(ci, phone, _tone(Color(0.32, 0.30, 0.34), t), out, line)
+	_shape(ci, _round_rect(c, s, -0.07, 0.11, 0.14, 0.22, 0.02), _tone(Color(0.55, 0.85, 1.0), t), out, maxf(line * 0.5, 1.0))
 
 
 ## Two three-toed footprints walking up the icon.

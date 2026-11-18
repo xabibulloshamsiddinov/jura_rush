@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased - Multiplayer with phones as controllers
+
+### Added
+- Multiplayer mode on desktop (main menu > Multiplayer): 1-3 players on a vertical split screen,
+  each strip a complete game world (own SubViewport and World3D) on the same seeded track. Lobby
+  with QR code and address, player cards with a 3D runner, READY and auto start, 3-2-1-GO, three
+  lives with respawn, a 3-minute clock, live places, results with medals, PLAY AGAIN, pause.
+- Phone controller: a web page served by the game itself over the local Wi-Fi (no app). Name,
+  runner choice (no duplicates), READY, swipe pad plus arrow buttons, score / lives / place / time,
+  countdown, vibration on hits, results and PLAY AGAIN. English / Uzbek / Russian. Reconnects by
+  itself and takes its slot back; a runner whose phone is lost waits frozen until it returns.
+- `NetServer`: a small HTTP + WebSocket (RFC 6455) server in GDScript, ports 8080-8090, polled on
+  the main thread, pings, size and idle limits. `QrCode`: a QR encoder in GDScript (byte mode,
+  level M, versions 1-40), checked against an independent decoder.
+- HOW TO CONNECT window: every address (virtual adapters flagged), page loads, connected
+  controllers, a verdict and the usual fixes (Wi-Fi, firewall, mobile data, /ping, hotspot).
+- Keyboard players (W A S D and arrow keys) and computer players for local play and tests.
+- Windows Desktop export preset (editor add-ons excluded). `--party*` dev flags. Test suite
+  `test_party.gd` (QR, WebSocket codec, the server on localhost, room rules, phone protocol, a
+  whole bot round).
+
+### Changed
+- Opening Multiplayer maximizes the window to the whole screen (F11 = full screen); leaving
+  restores its size and position.
+- Gameplay signals go through the event bus of the node's own world (`EventScope.of(node)`):
+  the GameEvents autoload for the single-player game, a private `EventBus` for each split-screen
+  world. Single-player behaviour is unchanged.
+- `GameWorld` can run as a multiplayer world (`solo = false`: no save, missions, services,
+  upgrades or touch input; per-world time scale for crash slow motion). New hooks:
+  `ScoreSystem.persist`, `PowerupController.use_upgrades`, `Player.look_character / look_trail`,
+  `TrackManager.drives_bend / release_all`, `VFXManager.play(..., parent)` / `release_under`.
+
 ## Unreleased - Jura Rush re-theme
 
 The cyberpunk "Neon Rails" becomes the Mesozoic "Jura Rush". Gameplay rules, numbers, patterns and

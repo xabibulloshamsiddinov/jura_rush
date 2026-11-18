@@ -63,7 +63,7 @@ func is_tail_first() -> bool:
 
 func telegraph() -> void:
 	_warned = true
-	GameEvents.moving_train_warning.emit(lane)
+	EventScope.of(self).moving_train_warning.emit(lane)
 
 
 func tick(delta: float, world_speed: float, chunk_z: float) -> void:

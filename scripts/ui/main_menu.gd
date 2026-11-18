@@ -6,6 +6,7 @@
 ##   top-right  egg and amber pills, round settings gear
 ##   under it   the logo, centred
 ##   left       round Missions and Daily Run buttons (with labels)    right  round Runners button
+##              (and Multiplayer on desktop builds)
 ##   ~76 %      "TAP TO PLAY", big and pulsing
 ##   bottom     SHOP | PLAY | TRAILS in a row
 ##
@@ -193,7 +194,10 @@ func _build_side_columns(ui: UITheme) -> void:
 	var right: VBoxContainer = UIKit.vbox(26)
 	var runners: UIButton = _round_item(right, UIIcon.Kind.HEAD, &"primary", &"menu.characters")
 	runners.pressed.connect(func() -> void: SceneRouter.push(&"shop", {"tab": 0}))
-	place(right, Vector2(1.0, COLUMN_Y), Vector2(-SIDE, 0.0), Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_END)
+	if PartyMode.available():
+		var party: UIButton = _round_item(right, UIIcon.Kind.PLAYERS, &"accent", &"menu.multiplayer")
+		party.pressed.connect(func() -> void: GameEvents.request_party_open.emit())
+	place(right,Vector2(1.0, COLUMN_Y), Vector2(-SIDE, 0.0), Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_END)
 
 
 ## One column entry: a round icon button with its name under it. Returns the button; its parent is
